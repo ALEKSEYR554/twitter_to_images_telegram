@@ -16,7 +16,7 @@ class FishSocket
       #begin
       bot.listen do |message|
         # Processing the new income message    #if that message sent after bot run.
-        Listener.catch_new_message(message,bot) if Listener::Security.message_is_new(start_bot_time,message)
+        Thread.new{Listener.catch_new_message(message,bot)}# if Listener::Security.message_is_new(start_bot_time,message) #disables BC OF INLINE MODE ENABLED
       end
       #rescue Exception => e
       #  if e.to_s.include?"retry_after"
@@ -24,7 +24,7 @@ class FishSocket
       #    sleep(5.3)
       #    retry
       #  end
-      #  Listener::Response.std_message("ЯРИИИИИИИИККККККК БОЧЁК ПОТИИИИИИК",TelegramConstants::ERROR_CHANNEL_ID)
+      #  Listener::Response.std_message("ERRRRRRRRRRRRRRROR",TelegramConstants::ERROR_CHANNEL_ID)
       #  Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)
       #end
     end

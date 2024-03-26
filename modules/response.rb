@@ -43,7 +43,7 @@ class FishSocket
           text: text
         )
       end
-      def fully_copy_and_send_message(chat_id)
+      def fully_copy_and_send_message(chat_id) #copypaste from another bot
         a=Listener::Codes.file_id_get
         count=a.each_slice(10).to_a.length#split array to arrays by 10 elements
         for j in 1..count do
@@ -111,12 +111,6 @@ class FishSocket
         end
       end
       def forward_message(to_chat_id, type="", add="")
-        case type
-        when "pls_find_full"
-          Listener.bot.api.send_message(chat_id:chat_id,text:"НАЙТИ ФУЛЛ Осталось на сегодня #{add} \n Айди отправителя: <code>#{message.from.id}</code>",parse_mode: 'html')
-        when "post_suggest"
-          Listener.bot.api.send_message(chat_id:chat_id,text:"ПЖ ВЫЛОЖИТЕ \n Айди отправителя: <code>#{message.from.id}</code> \n Отправитель #{Listener.message.from.username}",parse_mode: 'html')
-        end
         from_chat_id=Listener.message.chat.id
         message_id =Listener.message.message_id
         Listener.bot.api.forward_message(
@@ -132,7 +126,7 @@ class FishSocket
         Listener.bot.api.send_animation(
           parse_mode: 'html',
           chat_id: chat,
-          animation: file_id.to_s
+          animation: file_id
         )
       end
       def send_photo(file_id, chat_id = false,caption="" )
@@ -141,7 +135,7 @@ class FishSocket
         Listener.bot.api.send_photo(
           parse_mode: 'html',
           chat_id: chat,
-          photo: file_id.to_s,
+          photo: file_id,
           caption: caption.to_s
         )
       end

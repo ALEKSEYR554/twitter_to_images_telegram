@@ -29,7 +29,19 @@ class FishSocket
         # if message delay less then 5 min then processing message, else ignore
         message_delay > (30 * 60)
       end
-      module_function :message_is_new, :message_too_far, :is_blacklisted,:answer_callback_query
+      def is_subscribe(user)
+        if user==nil#chat.id =="-1001390791704"
+          return true
+        elsif Listener.bot.api.getChatMember(chat_id:"-1002091928465",user_id:user.id)['result']['status']=="left"
+          #Listener::Response.std_message("#{Listener.bot.api.getChatMember(chat_id:"@fulling_house",user_id:message.from.id)}")
+          #Listener.bot.api.send_message(chat_id:message.from.id, text:"Для работы бота сначала подпишитесь на <a href='#{TelegramConstants::CHANNEL_LINK}'>канал</a>", parse_mode: 'html')
+          Listener.bot.logger.info("#{user} is not subsctibed")
+          return false
+        end
+        Listener.bot.logger.info("#{user} is subsctibed")
+        return true
+      end
+      module_function :message_is_new, :message_too_far, :is_blacklisted,:answer_callback_query,:is_subscribe
     end
   end
 end

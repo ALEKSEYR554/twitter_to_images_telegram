@@ -8,6 +8,7 @@ require './modules/response'
 require './modules/callback_messages'
 require './modules/codes'
 require './modules/threads'
+require './modules/inline_query'
 require 'open-uri'
 require "net/http"
 require 'json'
@@ -16,8 +17,11 @@ class FishSocket
   def initialize
     super
     puts "RUNNING"
-    Telegram::Bot::Client.run(TelegramConstants::API_KEY) do |bot|
+    TelegramConstants.setup
+    p TelegramConstants::WHITE_LIST_IDS
+    Telegram::Bot::Client.run(TelegramConstants::API_KEY, logger: Logger.new("log.log",3, 10 * 1024 * 1024)) do |bot|
       # Start time variable, for exclude message what was sends before bot starts
+      bot.logger.info('Bot has been started')
       bot.api.send_message(chat_id: TelegramConstants::ERROR_CHANNEL_ID, text: "RUNNING")
       # Active socket listener
       Threads.startup(bot)
