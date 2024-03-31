@@ -27,14 +27,14 @@ class FishSocket
         quote=[]
         #p response
         count=0
-        for individual_response in response
+        for individual_response in response #adding caption
           author_hashtag<<"##{individual_response["tweet"]["author"]["screen_name"]}"
 
           source_lnk<<"<a href=\"#{individual_response["tweet"]["url"]}\">Source twitter#{(count!=0)? " "+count.to_s : ""}</a>"#""+Listener.message.text        
 
           quote<<"<blockquote>#{StandartMessages.transform_string(individual_response["tweet"]["text"])}</blockquote>"
           count+=1
-
+          #old gif handler code
           #if individual_response["tweet"]["media"].has_key? "videos"#/\/i\/status/.match? s
           #  Listener.bot.api.send_animation(
           #    chat_id:chat__id,
@@ -264,6 +264,7 @@ class FishSocket
             #return if Listener.message.text.include? "{\"code\":200"
             s=Listener.message.text#https://twitter.com/i/status/1731506067702686034
             #p Listener.message
+            Listener.bot.logger.info(Listener.message.chat)
             chat__id = (defined?Listener.message.chat.id) ? Listener.message.chat.id : Listener.message.message.chat.id
 
             #if not [-1002091928465].include? chat__id
