@@ -31,7 +31,7 @@ class FishSocket
         for individual_response in response #adding caption
           author_hashtag<<"##{individual_response["tweet"]["author"]["screen_name"]}"
 
-          source_lnk<<"<a href=\"#{individual_response["tweet"]["url"]}\">Source twitter#{(count!=0)? " "+count.to_s : ""}</a>"#""+Listener.message.text        
+          source_lnk<<"<a href=\"#{individual_response["tweet"]["url"]}\">Source twitter#{(count!=0)? " "+(count+1).to_s : ""}</a>"#""+Listener.message.text        
 
           quote<<"<blockquote>#{StandartMessages.transform_string(individual_response["tweet"]["text"])}</blockquote>"
           count+=1
