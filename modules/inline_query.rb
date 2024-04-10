@@ -64,10 +64,10 @@ class FishSocket
                         media=response['tweet']["media"]['all'][i]
                         #capt="#{i+1}/#{response['tweet']["media"]['all'].length}\n<a href=\"#{Listener.message.query}\">Twitter</a>"
                         capt="<a href=\"#{Listener.message.query}\">Twitter</a>"
-                        if !Security::is_subscribe(Listener.message.from)
-                            #p "unsub"
-                            capt+="\n#{TelegramConstants::CHANNEL_LINK}\nSubscribe to disable it" unless Codes.is_in_whitelist?(Listener.message.from)
-                        end
+                        #if !Security::is_subscribe(Listener.message.from)
+                        #    #p "unsub"
+                        #    capt+="\n#{TelegramConstants::CHANNEL_LINK}\nSubscribe to disable it" unless Codes.is_in_whitelist?(Listener.message.from)
+                        #end
                         
                         answer_inline << case media["type"]
                             when "video"
