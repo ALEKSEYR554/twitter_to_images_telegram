@@ -1,4 +1,6 @@
-module Bot_Texts
-  CHANNEL_INVITE_LINK=""
-  BOT_LINK=""
+class FishSocket
+  module Bot_Globals
+    attr_accessor :Uncompressed_Links
+    Uncompressed_Links=[]
+  end
 end

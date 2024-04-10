@@ -26,6 +26,7 @@ class FishSocket
         source_lnk=[]
         quote=[]
         #p response
+        first_link=response[0]["tweet"]["url"]
         count=0
         for individual_response in response #adding caption
           author_hashtag<<"##{individual_response["tweet"]["author"]["screen_name"]}"
@@ -60,10 +61,11 @@ class FishSocket
         if quote.length>=2
           quote=[""]
         end
-        for i in 0..response.length-1 do
+        for i in 0..response.length-1 do #getting all media links
+          #debug comments ----------------
           #File.open("#{out[i][out[i].index('/media/')+7..]}", 'wb') { |fp| fp.write(response.body) }
           #IO.copy_stream(URI.open("#{out[i]}:orig"), "./test_files/#{out[i][out[i].index('/media/')+7..]}")
-          #p response
+          #p response ------------------
           for j in 0..response[i]['tweet']["media"]['all'].length-1 do
             media=response[i]['tweet']["media"]['all'][j]
             if i==0 and j==0
@@ -104,8 +106,13 @@ class FishSocket
         p out_compressed
         p out_document
         p "-----------------"
+        p "fffffffffffffffffffffffffffffff"
+        if out_document!=[]
+          Bot_Globals::Uncompressed_Links<<{source_lnk:first_link,chat__id:chat__id,out_document:out_document}
+        end
         begin
           for upld in out_compressed
+            p upld
             p "cmp"
             ggg=Listener.bot.api.send_media_group(
             chat_id: chat__id,
@@ -117,6 +124,7 @@ class FishSocket
           end
         rescue Exception=> e
           p e
+          p e.backtrace
           #p e.backtrace
           case e.to_s
           when /Internal Server Error/
@@ -129,11 +137,17 @@ class FishSocket
               sleep(ttt.to_i)
               retry
           end
-          File.write("#{Time.now.to_i}.txt", "#{Time.now}\n #{e}\n#{result}")
+          File.write("#{Time.now.to_i}.txt", "#{Time.now}\n #{e}")
         end
         #while true 
         #  p Listener.bot.api.get_updates()
         #end
+
+
+
+        #trying to send in comments
+        return
+
         begin
           sleep(2*out_compressed.length)
           for upld in out_document
@@ -231,19 +245,10 @@ class FishSocket
         #p response["tweet"]["media"]["videos"][0]["url"]
       end
       def process
-        if Listener.message.text.to_s.include? "/start code_check_"
-          @code=Listener.message.text.to_s[18..-1]
-          Listener.message.text="/start code_check_"
-        end
-        if Listener.message.forward_from_chat
-          return
-        end
-        if Listener.message.forward_from
-          return
-        end
+        #p "JJJJJ=";p Listener.message
         case Listener.message.text
         when '/start', 'команды','/commands'
-          Listener::Response.std_message("Обязательно прочитайте /rules.\n Используйте меню комманд слева от поля ввода сообщения")
+          Listener::Response.std_message("This is placeholder. If you see this than bot is working. TODO: add rules")
         when /"code":200,"message":"OK","tweet"/
           response= Listener.message.text
           response= JSON.parse(response)

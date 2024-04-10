@@ -10,7 +10,15 @@ class FishSocket
       #return false if Security.message_too_far
       #bot.logger.info(self.message)
       p "..................................."
-      p self.message
+      #p message
+      #p "CAPTION======#{message.message_id}"
+      #p "================"
+      #p Bot_Globals::Uncompressed_Links
+      if Bot_Globals::Uncompressed_Links!=[]
+        p "eeeeeeeee"
+        Threads.upload_to_comments(message,bot)
+      end
+      #p Bot_Globals::Uncompressed_Links
       p "..................................."
       case self.message
       when Telegram::Bot::Types::CallbackQuery
