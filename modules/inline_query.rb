@@ -79,7 +79,7 @@ class FishSocket
                                     parse_mode:"HTML",
                                     video_width:media["width"],
                                     video_height:media["height"],
-                                    thumb_url:media["thumbnail_url"],
+                                    thumbnail_url:media["thumbnail_url"],
                                     title:"Twitter video"
                                     )
                             when "gif"
@@ -90,7 +90,7 @@ class FishSocket
                                     caption:capt,
                                     parse_mode:"HTML",
                                     mpeg4_height:media["height"],
-                                    thumb_url:media["thumbnail_url"]
+                                    thumbnail_url:media["thumbnail_url"]
                                     )
                             when "photo"
                                 Telegram::Bot::Types::InlineQueryResultPhoto.new(
@@ -100,7 +100,7 @@ class FishSocket
                                     caption:capt,
                                     parse_mode:"HTML",
                                     photo_height:media["height"],
-                                    thumb_url:"#{media["url"]}:orig"
+                                    thumbnail_url:"#{media["url"]}:orig"
                                     )
                         end
                     end
