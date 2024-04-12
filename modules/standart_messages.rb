@@ -10,7 +10,7 @@ class FishSocket
         transformed_string.gsub!(">","&gt")
         transformed_string.strip
       end
-      def response_to_images(response)
+      def response_to_images(message,response)
         #p "----------------"
         out=[]
         if response=="IT IS TEXT"
@@ -20,7 +20,7 @@ class FishSocket
         if !response.is_a? (Array)
           response=[response]
         end
-        chat__id = (defined?Listener.message.chat.id) ? Listener.message.chat.id : Listener.message.message.chat.id
+        chat__id = (defined?message.chat.id) ? message.chat.id : message.message.chat.id
         p "1"
         author_hashtag=[]
         source_lnk=[]
@@ -31,7 +31,7 @@ class FishSocket
         for individual_response in response #adding caption
           author_hashtag<<"##{individual_response["tweet"]["author"]["screen_name"]}"
 
-          source_lnk<<"<a href=\"#{individual_response["tweet"]["url"]}\">Source twitter#{(count!=0)? " "+(count+1).to_s : ""}</a>"#""+Listener.message.text        
+          source_lnk<<"<a href=\"#{individual_response["tweet"]["url"]}\">Source twitter#{(count!=0)? " "+(count+1).to_s : ""}</a>"#""+message.text        
 
           quote<<"<blockquote>#{StandartMessages.transform_string(individual_response["tweet"]["text"])}</blockquote>"
           count+=1
@@ -102,23 +102,23 @@ class FishSocket
         end
         out_compressed=out_compressed.each_slice(10).to_a
         out_document=out_document.each_slice(10).to_a
-        p "....................................."
-        p out_compressed
-        p out_document
-        p "-----------------"
-        p "fffffffffffffffffffffffffffffff"
+        #p "....................................."
+        #p out_compressed
+        #p out_document
+        #p "-----------------"
+        #p "fffffffffffffffffffffffffffffff"
         if out_document!=[]
           Bot_Globals::Uncompressed_Links<<{source_lnk:first_link,chat__id:chat__id,out_document:out_document}
         end
         begin
           for upld in out_compressed
-            p upld
+            #p upld
             p "cmp"
             ggg=Listener.bot.api.send_media_group(
             chat_id: chat__id,
             media: upld
             )
-            p ggg
+            #p ggg
             #File.write("111.txt","#{ggg}")
             sleep(2)
           end
@@ -194,7 +194,7 @@ class FishSocket
             s=s[0..s.index("/video")-1]
           end
           
-          #Listener.message.text
+          #message.text
 
           api_link="https://api.fxtwitter.com"#"http://127.0.0.1:8787"#
 
@@ -244,39 +244,39 @@ class FishSocket
         #p response
         #p response["tweet"]["media"]["videos"][0]["url"]
       end
-      def process
-        #p "JJJJJ=";p Listener.message
-        case Listener.message.text
+      def process(message)
+        #p "JJJJJ=";p message
+        case message.text
         when '/start', 'команды','/commands'
           Listener::Response.std_message("This is placeholder. If you see this than bot is working. TODO: add rules")
         when /"code":200,"message":"OK","tweet"/
-          response= Listener.message.text
+          response= message.text
           response= JSON.parse(response)
 
-          chat__id = (defined?Listener.message.chat.id) ? Listener.message.chat.id : Listener.message.message.chat.id
-          Listener.bot.api.delete_message(chat_id:chat__id, message_id:Listener.message.message_id)
+          chat__id = (defined?message.chat.id) ? message.chat.id : message.message.chat.id
+          Listener.bot.api.delete_message(chat_id:chat__id, message_id:message.message_id)
           
 
-          StandartMessages.response_to_images(response)
+          StandartMessages.response_to_images(message,response)
           return
           
         when /https:\/\/(fxtwitter|twitter|x|fixupx)\.com/ #https:\/\/(fx|)twitter\.com.*\/photo\/
           #begin
           source_lnk=""
           tw_link=""
-          if not Listener.message.from#channel return nil
-            #p Listener.message
-            #return if Listener.message.text.include? "{\"code\":200"
-            s=Listener.message.text#https://twitter.com/i/status/1731506067702686034
-            #p Listener.message
-            Listener.bot.logger.info(Listener.message.chat)
-            chat__id = (defined?Listener.message.chat.id) ? Listener.message.chat.id : Listener.message.message.chat.id
+          if not message.from#channel return nil
+            #p message
+            #return if message.text.include? "{\"code\":200"
+            s=message.text#https://twitter.com/i/status/1731506067702686034
+            #p message
+            Listener.bot.logger.info(message.chat)
+            chat__id = (defined?message.chat.id) ? message.chat.id : message.message.chat.id
 
             #if not [-1002091928465].include? chat__id
 
             #p chat__id
             begin
-              Listener.bot.api.delete_message(chat_id:chat__id, message_id:Listener.message.message_id)
+              Listener.bot.api.delete_message(chat_id:chat__id, message_id:message.message_id)
             rescue Exception=>e
               Listener.bot.logger.warn(e)
               return
@@ -286,7 +286,7 @@ class FishSocket
             resp=StandartMessages.get_fxtwitter_response(s)
 
 
-            StandartMessages.response_to_images(resp)
+            StandartMessages.response_to_images(message,resp)
             return
           end
           #rescue Exception => e
@@ -295,18 +295,18 @@ class FishSocket
             #Listener::Response.std_message("#{tw_link.to_s.sub! "http://127.0.0.1:8787","https://api.fxtwitter.com"}",TelegramConstants::ERROR_CHANNEL_ID)
           #end
         when "ping"
-          #p Listener.message
-          Listener::Response.std_message("pong")
+          #p message
+          Listener::Response.std_message(message,"pong")
         when "/add_to_whitelist"
-          return if not Codes.is_admin?(Listener.message.from)
-          Listener::Response.force_reply_message("Send_id")
+          return if not Codes.is_admin?(message.from)
+          Listener::Response.force_reply_message(message,"Send_id")
         when "/send_latest_log"
-          return if not Codes.is_admin?(Listener.message.from)
+          return if not Codes.is_admin?(message.from)
           io_log=Faraday::UploadIO.new('log.log', 'log/log')
-          Listener::Response.send_document(io_log)
+          Listener::Response.send_document(message,io_log)
           io_log.close
         when "test"
-          a=Listener::Response.send_document("https://api.fxtwitter.com/saberwotd/status/1772533531903766860/photo/1")  
+          a=Listener::Response.send_document(message,"https://api.fxtwitter.com/saberwotd/status/1772533531903766860/photo/1")  
           a= a["result"]["document"]["file_id"]
           file=Listener.bot.api.get_file(file_id:a).dig('result','file_path').to_s
           res= URI.open("https://api.telegram.org/file/bot#{TelegramConstants::API_KEY}/#{file}").read
@@ -314,18 +314,18 @@ class FishSocket
           #file=Listener.bot.api.get_file(file_id:aa["document"]["file_id"])
           #p file
         else
-          unless Listener.message.reply_to_message.nil?
-            case Listener.message.reply_to_message.text
+          unless message.reply_to_message.nil?
+            case message.reply_to_message.text
             when /Send_id/
-              return if not Codes.is_admin?(Listener.message.from)
-              if Listener.message.text.to_i !=0
-                File.write('whitelist.txt', "\n#{Listener.message.text}", mode: 'a+')
+              return if not Codes.is_admin?(message.from)
+              if message.text.to_i !=0
+                File.write('whitelist.txt', "\n#{message.text}", mode: 'a+')
               end
             end
-          end        #Response.std_message "#{Listener.message.forward_from_chat.id}"
-          unless Listener.message.caption.nil?
-            if Listener.message.caption.include? "t.me"
-              Listener::Response.edit_message_caption(nil)
+          end        #Response.std_message "#{message.forward_from_chat.id}"
+          unless message.caption.nil?
+            if message.caption.include? "t.me"
+              Listener::Response.edit_message_caption(message,nil)
             end
           end
         end

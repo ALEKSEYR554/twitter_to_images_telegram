@@ -5,7 +5,7 @@ class FishSocket
       if message.forward_origin
         #p "ORIGINAAAAAAAAAAAAAAAAAAAAAAAAAAA"
         #p "CAPTION======#{message.caption}"
-        #p Listener.message
+        #p message
         if Bot_Globals::Uncompressed_Links==[]
           return
         else #sending uncompressed in comments
@@ -19,8 +19,8 @@ class FishSocket
             #p message.caption_entities
             bot.logger.info(Bot_Globals::Uncompressed_Links)
             if message.forward_origin.chat.id==Bot_Globals::Uncompressed_Links[i][:chat__id]
-              #return if Listener.message.caption_entities==nil
-              #p Listener.message
+              #return if message.caption_entities==nil
+              #p message
               for entitie in message.caption_entities
                 #p "#{entitie.url}____#{Bot_Globals::Uncompressed_Links[i][:source_lnk]}"
                 #p entitie

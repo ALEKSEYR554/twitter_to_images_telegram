@@ -22,11 +22,11 @@ class FishSocket
       p "..................................."
       case self.message
       when Telegram::Bot::Types::CallbackQuery
-        CallbackMessages.process
+        CallbackMessages.process(message)
       when Telegram::Bot::Types::Message
-        StandartMessages.process
+        StandartMessages.process(message)
       when Telegram::Bot::Types::InlineQuery
-        InlineQuery.process
+        InlineQuery.process(message)
       end
       rescue Exception => e
         bot.logger.error("#{self.message}\n #{e}\n#{e.backtrace}")
