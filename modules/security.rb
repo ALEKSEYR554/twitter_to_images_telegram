@@ -23,8 +23,8 @@ class FishSocket
         end
         return false
       end
-      def message_too_far
-        message_date = (defined? Listener.message.date) ? Listener.message.date : Listener.message.message.date
+      def message_too_far(message)
+        message_date = (defined? message.date) ? message.date : message.message.date
         message_delay = Time.now.to_i - message_date.to_i
         # if message delay less then 5 min then processing message, else ignore
         message_delay > (30 * 60)

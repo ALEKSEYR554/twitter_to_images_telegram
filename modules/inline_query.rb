@@ -2,18 +2,18 @@ class FishSocket
     module Listener
       # This module assigned to processing all InlineQuery requests
         module InlineQuery
-            def process
+            def process(message)
                 
-                #p "inline=#{Listener.message}" 
+                #p "inline=#{message}" 
 
 
 
                 #EXAMPLE
                 eXAMPLE_code='''
-                if not Codes.is_in_whitelist?(Listener.message.from)
+                if not Codes.is_in_whitelist?(message.from)
                     begin
                     Listener.bot.api.answer_inline_query(
-                            inline_query_id: Listener.message.id,
+                            inline_query_id: message.id,
                             results: [Telegram::Bot::Types::InlineQueryResultArticle.new(
                                 id: "0",
                                 title: "You need to be in whitelist to access this bot",
@@ -27,11 +27,11 @@ class FishSocket
                     return
                 end
                 '''
-                #p Listener.message.query
-                case Listener.message.query
-                when /https:\/\/(fxtwitter|twitter|x|fixupx)\.com/#.match?("#{Listener.message}")#.include? "https://twitter.com" or Listener.message.include? "https://x.com"
+                #p message.query
+                case message.query
+                when /https:\/\/(fxtwitter|twitter|x|fixupx)\.com/#.match?("#{message}")#.include? "https://twitter.com" or message.include? "https://x.com"
                     begin
-                    response=StandartMessages.get_fxtwitter_response("#{Listener.message}")[0]
+                    response=StandartMessages.get_fxtwitter_response("#{message}")[0]
                     rescue Exception=>e
                         return
                     end
@@ -42,7 +42,7 @@ class FishSocket
                     if response=="IT IS TEXT"
                         begin
                         Listener.bot.api.answer_inline_query(
-                                inline_query_id: Listener.message.id,
+                                inline_query_id: message.id,
                                 results: [Telegram::Bot::Types::InlineQueryResultArticle.new(
                                     id: "0",
                                     title: "There is no media found",
@@ -62,12 +62,12 @@ class FishSocket
                     answer_inline=[]
                     for i in 0..response['tweet']["media"]['all'].length-1 do
                         media=response['tweet']["media"]['all'][i]
-                        #capt="#{i+1}/#{response['tweet']["media"]['all'].length}\n<a href=\"#{Listener.message.query}\">Twitter</a>"
-                        capt="<a href=\"#{Listener.message.query}\">Twitter</a>"
-                        if !Security::is_subscribe(Listener.message.from)
-                            #p "unsub"
-                            capt+="\n#{TelegramConstants::CHANNEL_LINK}\nSubscribe to disable it" unless Codes.is_in_whitelist?(Listener.message.from)
-                        end
+                        #capt="#{i+1}/#{response['tweet']["media"]['all'].length}\n<a href=\"#{message.query}\">Twitter</a>"
+                        capt="<a href=\"#{message.query}\">Twitter</a>"
+                        #if !Security::is_subscribe(message.from)
+                        #    #p "unsub"
+                        #    capt+="\n#{TelegramConstants::CHANNEL_LINK}\nSubscribe to disable it" unless Codes.is_in_whitelist?(message.from)
+                        #end
                         
                         answer_inline << case media["type"]
                             when "video"
@@ -79,7 +79,7 @@ class FishSocket
                                     parse_mode:"HTML",
                                     video_width:media["width"],
                                     video_height:media["height"],
-                                    thumb_url:media["thumbnail_url"],
+                                    thumbnail_url:media["thumbnail_url"],
                                     title:"Twitter video"
                                     )
                             when "gif"
@@ -90,7 +90,7 @@ class FishSocket
                                     caption:capt,
                                     parse_mode:"HTML",
                                     mpeg4_height:media["height"],
-                                    thumb_url:media["thumbnail_url"]
+                                    thumbnail_url:media["thumbnail_url"]
                                     )
                             when "photo"
                                 Telegram::Bot::Types::InlineQueryResultPhoto.new(
@@ -100,7 +100,7 @@ class FishSocket
                                     caption:capt,
                                     parse_mode:"HTML",
                                     photo_height:media["height"],
-                                    thumb_url:"#{media["url"]}:orig"
+                                    thumbnail_url:"#{media["url"]}:orig"
                                     )
                         end
                     end
@@ -110,11 +110,11 @@ class FishSocket
                     #answer_inline=[Telegram::Bot::Types::InlineQueryResultPhoto]
                     #p answer_inline
                     #p "______"
-                    #p Listener.message
+                    #p message
                     #p "==========="
                     begin
                     p Listener.bot.api.answer_inline_query(
-                        inline_query_id: Listener.message.id,
+                        inline_query_id: message.id,
                         is_personal: true,
                         results: answer_inline)
                     rescue Exception=>e

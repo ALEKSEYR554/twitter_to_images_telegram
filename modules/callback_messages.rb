@@ -4,11 +4,11 @@ class FishSocket
     module CallbackMessages
       attr_accessor :callback_message
 
-      def process
-        self.callback_message = Listener.message.message
-        case Listener.message.data
+      def process(message)
+        self.callback_message = message.message
+        case message.data
         when 'EXAMPLE_PLACEHOLDER'
-          Listener::Response.force_reply_message("Введите айди человека")
+          Listener::Response.force_reply_message(message,"Введите айди человека")
           Listener::Security.answer_callback_query
         end
       end
