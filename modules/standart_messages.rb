@@ -153,9 +153,10 @@ class FishSocket
 
 
         #trying to send in comments
-        if not comment_chat_available
+        if not comment_chat_available #TODO
           return
         end
+        return #while upper todo is no completed
         sleep(4)
         begin
           sleep(2*out_compressed.length)
