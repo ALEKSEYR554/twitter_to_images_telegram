@@ -69,7 +69,7 @@ class FishSocket
           for j in 0..response[i]['tweet']["media"]['all'].length-1 do
             media=response[i]['tweet']["media"]['all'][j]
             if i==0 and j==0
-              capt= "#{quote.join("\n")}\n#{author_hashtag.uniq.join(" ")}\n#{source_lnk.join("\n\n")}"
+              capt= "#{quote.join("\n")}\n#{author_hashtag.uniq.join(" ")}\n#{source_lnk.join("\n")}"
             else
               capt=""
             end
@@ -107,7 +107,14 @@ class FishSocket
         #p out_document
         #p "-----------------"
         #p "fffffffffffffffffffffffffffffff"
-        if out_document!=[]
+        comment_chat_available=false
+        begin
+          temt=Listener.bot.api.get_chat(chat_id:chat__id).linked_chat_id
+          Listener.bot.api.get_chat(chat_id:temt)
+          comment_chat_available=true
+        rescue
+        end
+        if out_document!=[] and comment_chat_available
           Bot_Globals::Uncompressed_Links<<{source_lnk:first_link,chat__id:chat__id,out_document:out_document}
         end
         begin
@@ -137,7 +144,7 @@ class FishSocket
               sleep(ttt.to_i)
               retry
           end
-          File.write("#{Time.now.to_i}.txt", "#{Time.now}\n #{e}")
+          File.write("#{Time.now.to_i}.txt", "#{Time.now}\n #{e}\n#{e.backtrace}\n#{message}")
         end
         #while true 
         #  p Listener.bot.api.get_updates()
@@ -146,8 +153,10 @@ class FishSocket
 
 
         #trying to send in comments
-        return
-
+        if not comment_chat_available
+          return
+        end
+        sleep(4)
         begin
           sleep(2*out_compressed.length)
           for upld in out_document
@@ -172,7 +181,7 @@ class FishSocket
               sleep(ttt.to_i)
               retry
           end
-          File.write("#{Time.now.to_i}.txt", "#{Time.now}\n #{e}\n#{result}")
+          File.write("#{Time.now.to_i}.txt", "#{Time.now}\n #{e}\n#{e.backtrace}\n#{message}")
         end
         
 
@@ -248,7 +257,15 @@ class FishSocket
         #p "JJJJJ=";p message
         case message.text
         when '/start', 'команды','/commands'
-          Listener::Response.std_message("This is placeholder. If you see this than bot is working. TODO: add rules")
+          Listener::Response.std_message(message,"This is placeholder. If you see this than bot is working. TODO: add rules")
+        when '/ping'
+          Listener::Response.std_message(message,"pong")
+        when "/remove_cache"
+          return if not Codes.is_admin?(message.from)
+          for i in Bot_Globals::Uncompressed_Links
+            Bot_Globals::Uncompressed_Links.delete_message(i)
+          end
+          Listener::Response.std_message(message,Bot_Globals::Uncompressed_Links)
         when /"code":200,"message":"OK","tweet"/
           response= message.text
           response= JSON.parse(response)

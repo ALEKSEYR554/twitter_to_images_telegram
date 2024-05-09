@@ -115,7 +115,6 @@ class FishSocket
                     begin
                     p Listener.bot.api.answer_inline_query(
                         inline_query_id: message.id,
-                        is_personal: true,
                         results: answer_inline)
                     rescue Exception=>e
                         #p e

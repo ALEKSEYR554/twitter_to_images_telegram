@@ -18,6 +18,7 @@ class FishSocket
             #p Bot_Globals::Uncompressed_Links[i][:chat__id]
             #p message.caption_entities
             bot.logger.info(Bot_Globals::Uncompressed_Links)
+            next if Bot_Globals::Uncompressed_Links[i]==nil
             if message.forward_origin.chat.id==Bot_Globals::Uncompressed_Links[i][:chat__id]
               #return if message.caption_entities==nil
               #p message
@@ -53,7 +54,7 @@ class FishSocket
                         sleep(ttt.to_i)
                         retry
                     end
-                    File.write("#{Time.now.to_i}.txt", "#{Time.now}\n #{e}\n#{result}")
+                    File.write("#{Time.now.to_i}.txt", "#{Time.now}\n #{e}\n#{e.backtrace}\n#{message}")
                   end
                 end
               end
