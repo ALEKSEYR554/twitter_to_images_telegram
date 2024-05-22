@@ -39,14 +39,20 @@ class FishSocket
                     #p "---"
                     #p response
                     #p "---"
-                    if response=="IT IS TEXT"
+                    p "respin==#{response}"
+                    if response.is_a? String
                         begin
                         Listener.bot.api.answer_inline_query(
                                 inline_query_id: message.id,
                                 results: [Telegram::Bot::Types::InlineQueryResultArticle.new(
                                     id: "0",
-                                    title: "There is no media found",
-                                    input_message_content: Telegram::Bot::Types::InputTextMessageContent.new(message_text: "There is no media found")
+                                    title: "Click me to send text starting with #{response[0..10]}",
+                                    input_message_content: Telegram::Bot::Types::InputTextMessageContent.new(
+                                        message_text: "<blockquote>#{StandartMessages.transform_string(response)}</blockquote>\n<a href=\"#{StandartMessages.transform_string(message.query)}\">twitter</a>",
+                                        parse_mode:"html",
+                                        link_preview_options:Telegram::Bot::Types::LinkPreviewOptions.new(
+                                            is_disabled:true)
+                                        )
                                 )
                                 ]
                             )

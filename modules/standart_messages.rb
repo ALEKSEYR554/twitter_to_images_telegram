@@ -247,7 +247,7 @@ class FishSocket
           if response["tweet"].has_key? "media"
             output_response_array<< response
           else 
-            return "IT IS TEXT"
+            return [response["tweet"]["text"]]
           end
         end
         return output_response_array
@@ -263,8 +263,9 @@ class FishSocket
           Listener::Response.std_message(message,"pong")
         when "/remove_cache"
           return if not Codes.is_admin?(message.from)
+          Listener::Response.std_message(message,Bot_Globals::Uncompressed_Links)
           for i in Bot_Globals::Uncompressed_Links
-            Bot_Globals::Uncompressed_Links.delete_message(i)
+            Bot_Globals::Uncompressed_Links.delete(i)
           end
           Listener::Response.std_message(message,Bot_Globals::Uncompressed_Links)
         when /"code":200,"message":"OK","tweet"/
