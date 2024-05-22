@@ -257,10 +257,12 @@ class FishSocket
       def process(message)
         #p "JJJJJ=";p message
         case message.text
-        when '/start', 'команды','/commands'
-          Listener::Response.std_message(message,"This is placeholder. If you see this than bot is working. TODO: add rules")
+        when '/start', 'команды','/commands,/how_to'
+          Listener::Response.std_message(message,"https://telegra.ph/How-to-twitter-embed-bot-05-22")
         when '/ping'
           Listener::Response.std_message(message,"pong")
+        when '/open_source'
+          Listener::Response.std_message(message,"Contribute on\nhttps://github.com/ALEKSEYR554/twitter_to_images_telegram")
         when "/remove_cache"
           return if not Codes.is_admin?(message.from)
           Listener::Response.std_message(message,Bot_Globals::Uncompressed_Links)
