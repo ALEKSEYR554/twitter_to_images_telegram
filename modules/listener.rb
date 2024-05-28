@@ -14,7 +14,7 @@ class FishSocket
       #p "CAPTION======#{message.message_id}"
       #p "================"
       #p Bot_Globals::Uncompressed_Links
-      if Bot_Globals::Uncompressed_Links!=[]
+      if Bot_Globals::Uncompressed_Links!=[] and message.is_a? Telegram::Bot::Types::Message
         p "eeeeeeeee"
         Threads.upload_to_comments(message,bot)
       end
@@ -30,15 +30,15 @@ class FishSocket
       end
       rescue Exception => e
         bot.logger.error("#{self.message}\n #{e}\n#{e.backtrace}")
-        #File.write("#{Time.now.to_i}.txt", "#{self.message}\n#{Time.now}\n #{e}\n#{e.backtrace}")#Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)#Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)
-      #  retry
-      #  if e.to_s.include? "retry after"
-      #    Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)
-      #    retry
-      #  end
-      #  if not e.to_s.include? "bot was blocked by the user"
-      #    Listener.bot.api.send_message(chat_id:TelegramConstants::ERROR_CHANNEL_ID, text:"Я КРАШНУЛСЯ")
-      #  end
+        File.write("#{Time.now.to_i}.txt", "#{self.message}\n#{Time.now}\n #{e}\n#{e.backtrace}")#Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)#Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)
+        retry
+        if e.to_s.include? "retry after"
+          Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)
+          retry
+        end
+        if not e.to_s.include? "bot was blocked by the user"
+          Listener.bot.api.send_message(chat_id:TelegramConstants::ERROR_CHANNEL_ID, text:"Я КРАШНУЛСЯ")
+        end
       end
     end
 

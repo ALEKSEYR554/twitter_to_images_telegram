@@ -130,6 +130,7 @@ class FishSocket
             sleep(2)
           end
         rescue Exception=> e
+          Listener.bot.logger.error("#{self.message}\n #{e}\n#{e.backtrace}")
           p e
           p e.backtrace
           #p e.backtrace
@@ -231,8 +232,14 @@ class FishSocket
           end
           #p response
           #p response
+          #if response==nil
+          #  return nil
+          #end
           response= JSON.parse(response.body) 
-
+          #p response
+          if response["code"]==404
+            return nil
+          end
           if false#response["code"]==404   JUST IN CASE. Send API link to telegram to get file, then download this file to get request. useful when there is problems with connecting to fxtwitter
             a=Listener::Response.send_document((tw_link.to_s.sub! "http://127.0.0.1:8787","https://api.fxtwitter.com"),TelegramConstants::ERROR_CHANNEL_ID)#"https://api.fxtwitter.com/nezulet/status/1565910020142899201")  
             e= a["result"]["document"]["file_id"]
@@ -250,6 +257,7 @@ class FishSocket
             return [response["tweet"]["text"]]
           end
         end
+        #p response
         return output_response_array
         #p response
         #p response["tweet"]["media"]["videos"][0]["url"]
@@ -257,7 +265,7 @@ class FishSocket
       def process(message)
         #p "JJJJJ=";p message
         case message.text
-        when '/start', 'команды','/commands,/how_to'
+        when '/start', 'команды','/commands','/how_to'
           Listener::Response.std_message(message,"https://telegra.ph/How-to-twitter-embed-bot-05-22")
         when '/ping'
           Listener::Response.std_message(message,"pong")
@@ -305,6 +313,7 @@ class FishSocket
 
 
             resp=StandartMessages.get_fxtwitter_response(s)
+            return if not resp
 
 
             StandartMessages.response_to_images(message,resp)
