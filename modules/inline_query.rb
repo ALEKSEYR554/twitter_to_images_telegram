@@ -30,11 +30,31 @@ class FishSocket
                 #p message.query
                 case message.query
                 when /https:\/\/(fxtwitter|twitter|x|fixupx)\.com/#.match?("#{message}")#.include? "https://twitter.com" or message.include? "https://x.com"
+                    p message.query
                     begin
-                    response=StandartMessages.get_fxtwitter_response("#{message}")[0]
+                    response=StandartMessages.get_fxtwitter_response("#{message.query}")
                     rescue Exception=>e
+                        Listener.bot.logger.warn("Error in getting fxtwitter response while in inline query")
+                        Listener.bot.logger.error("#{message}\n #{e}\n#{e.backtrace}")
+                    end
+                    if !response
+                        Listener.bot.api.answer_inline_query(
+                                inline_query_id: message.id,
+                                results: [Telegram::Bot::Types::InlineQueryResultArticle.new(
+                                    id: "0",
+                                    title: "invalid link",
+                                    input_message_content: Telegram::Bot::Types::InputTextMessageContent.new(
+                                        message_text: "invalid link",
+                                        parse_mode:"html",
+                                        link_preview_options:Telegram::Bot::Types::LinkPreviewOptions.new(
+                                            is_disabled:true)
+                                        )
+                                )
+                                ]
+                            )
                         return
                     end
+                    response=response[0]
                     #p "???"
                     #p "---"
                     #p response
