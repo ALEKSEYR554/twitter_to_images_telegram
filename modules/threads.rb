@@ -1,17 +1,22 @@
 class FishSocket
   module Threads
     def upload_to_comments(message,bot)
-      p message
+      #p message
       if message.forward_origin
         #p "ORIGINAAAAAAAAAAAAAAAAAAAAAAAAAAA"
         #p "CAPTION======#{message.caption}"
         #p message
+        if Bot_Globals::Uncompressed_Links.length>=10
+          for i in Bot_Globals::Uncompressed_Links
+            Bot_Globals::Uncompressed_Links.delete(i)
+          end
+        end
         if Bot_Globals::Uncompressed_Links==[]
           return
         else #sending uncompressed in comments
           for i in 0..Bot_Globals::Uncompressed_Links.length-1
             #p message.forward_origin.chat.id 
-            bot.logger.info(message.forward_origin.chat.id)
+            bot.logger.info("Проверяем на наличие нужной ссылки Сообщение в чате:#{message.chat.id} переслано из:#{message.forward_origin.chat.id}")
             #return if Bot_Globals::Uncompressed_Links==[]
             #p Bot_Globals::Uncompressed_Links
             #p Bot_Globals::Uncompressed_Links[i]
@@ -19,12 +24,14 @@ class FishSocket
             #p message.caption_entities
             bot.logger.info(Bot_Globals::Uncompressed_Links)
             next if Bot_Globals::Uncompressed_Links[i]==nil
+
             if message.forward_origin.chat.id==Bot_Globals::Uncompressed_Links[i][:chat__id]
-              #return if message.caption_entities==nil
+              return if message.caption_entities==nil
               #p message
               for entitie in message.caption_entities
                 #p "#{entitie.url}____#{Bot_Globals::Uncompressed_Links[i][:source_lnk]}"
                 #p entitie
+                return if Bot_Globals::Uncompressed_Links[i].nil?
                 if entitie.url==Bot_Globals::Uncompressed_Links[i][:source_lnk]
                   out_doc=Bot_Globals::Uncompressed_Links[i][:out_document]
                   Bot_Globals::Uncompressed_Links.delete(Bot_Globals::Uncompressed_Links[i])
@@ -54,8 +61,11 @@ class FishSocket
                         sleep(ttt.to_i)
                         retry
                     end
-                    File.write("#{Time.now.to_i}.txt", "#{Time.now}\n #{e}\n#{e.backtrace}\n#{message}")
+                    Listener.bot.logger.info(message)
+                    File.write("#{Time.now.to_i}.txt", "#{Time.now}\n #{e}\n#{e.backtrace}")
+                    return
                   end
+                  bot.logger.info("something was sent to comments")
                 end
               end
             end
@@ -76,20 +86,19 @@ class FishSocket
       end
     end
     def main_bot(bot,start_bot_time)
-      #begin
+      begin
       bot.listen do |message|
         # Processing the new income message    #if that message sent after bot run.
         Thread.new{Listener.catch_new_message(message,bot)}# if Listener::Security.message_is_new(start_bot_time,message) #disables BC OF INLINE MODE ENABLED
       end
-      #rescue Exception => e
-      #  if e.to_s.include?"retry_after"
-      #    p e
-      #    sleep(5.3)
-      #    retry
-      #  end
-      #  Listener::Response.std_message("ERRRRRRRRRRRRRRROR",TelegramConstants::ERROR_CHANNEL_ID)
-      #  Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)
-      #end
+      rescue Exception => e
+        sleep(1)
+        p "Errr"
+        bot.logger.error("")
+        retry
+        #  Listener::Response.std_message("ERRRRRRRRRRRRRRROR",TelegramConstants::ERROR_CHANNEL_ID)
+        #  Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)
+      end
     end
     def startup(bot)
       start_bot_time = Time.now.to_i

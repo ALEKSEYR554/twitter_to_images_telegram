@@ -10,113 +10,191 @@ class FishSocket
         transformed_string.gsub!(">","&gt")
         transformed_string.strip
       end
-      def response_to_images(message,response)
+      def response_to_images(message,response,host_url="twitter")
         #p "----------------"
         out=[]
-        if response=="IT IS TEXT"
-          return
-        end
-        p response
-        if !response.is_a? (Array)
-          response=[response]
-        end
         chat__id = (defined?message.chat.id) ? message.chat.id : message.message.chat.id
-        p "1"
         author_hashtag=[]
         source_lnk=[]
         quote=[]
-        #p response
-        first_link=response[0]["tweet"]["url"]
-        count=0
-        for individual_response in response #adding caption
-          author_hashtag<<"##{individual_response["tweet"]["author"]["screen_name"]}"
-
-          source_lnk<<"<a href=\"#{individual_response["tweet"]["url"]}\">Source twitter#{(count!=0)? " "+(count+1).to_s : ""}</a>"#""+message.text        
-
-          quote<<"<blockquote>#{StandartMessages.transform_string(individual_response["tweet"]["text"])}</blockquote>"
-          count+=1
-          #old gif handler code
-          #if individual_response["tweet"]["media"].has_key? "videos"#/\/i\/status/.match? s
-          #  Listener.bot.api.send_animation(
-          #    chat_id:chat__id,
-          #    animation: individual_response["tweet"]["media"]["videos"][0]["url"],
-          #    caption:"#{quote}\n#{author_hashtag}\n#{source_lnk}",
-          #    parse_mode:"HTML"
-          #  )
-          #  return
-          #end
-          p "2"
-          #individual_response["tweet"]["media"]["photos"].each do |img_hash|
-          #  out << img_hash["url"]
-          #end
-        end
-        
-        #out=out.each_slice(10).to_a
-        
         out_compressed=[];out_document=[]
-        p "FUUUUUUUUUUUU"
-        #p quote
-        #p author_hashtag
-        #p source_lnk
-        if quote.length>=2
-          quote=[""]
-        end
-        for i in 0..response.length-1 do #getting all media links
-          #debug comments ----------------
-          #File.open("#{out[i][out[i].index('/media/')+7..]}", 'wb') { |fp| fp.write(response.body) }
-          #IO.copy_stream(URI.open("#{out[i]}:orig"), "./test_files/#{out[i][out[i].index('/media/')+7..]}")
-          #p response ------------------
-          for j in 0..response[i]['tweet']["media"]['all'].length-1 do
-            media=response[i]['tweet']["media"]['all'][j]
-            if i==0 and j==0
-              capt= "#{quote.join("\n")}\n#{author_hashtag.uniq.join(" ")}\n#{source_lnk.join("\n")}"
-            else
-              capt=""
-            end
-            case media["type"]
-            when "video"
-              out_compressed<<Telegram::Bot::Types::InputMediaVideo.new(
-                  type:"video",
-                  media:media["url"],
-                  caption:capt,
-                  parse_mode:"HTML"
-                  )
-            when "gif"
-              Listener.bot.api.send_animation(
-                chat_id:chat__id,
-                animation: individual_response["tweet"]["media"]["videos"][j]["url"],
-                caption:capt,
-                parse_mode:"HTML"
-              )
-            when "photo"
-              out_compressed<<Telegram::Bot::Types::InputMediaPhoto.new(
-                    media:"#{media["url"]}:orig",
+
+        case host_url
+        when "twitter"
+          if response[0].is_a? String
+            return
+          end
+          p response
+          if !response.is_a? (Array)
+            response=[response]
+          end
+          p "1"
+          #p response
+          first_link=response[0]["tweet"]["url"]
+          count=0
+          for individual_response in response #adding caption
+            author_hashtag<<"##{individual_response["tweet"]["author"]["screen_name"]}"
+  
+            source_lnk<<"<a href=\"#{individual_response["tweet"]["url"]}\">Source twitter#{(count!=0)? " "+(count+1).to_s : ""}</a>"#""+message.text        
+  
+            quote<<"<blockquote>#{StandartMessages.transform_string(individual_response["tweet"]["text"])}</blockquote>"
+            count+=1
+            p "2"
+          end
+          
+          #out=out.each_slice(10).to_a
+          
+          
+          p "FUUUUUUUUUUUU"
+          #p quote
+          #p author_hashtag
+          #p source_lnk
+          if quote.length>=2
+            quote=[""]
+          end
+          for i in 0..response.length-1 do #getting all media links
+            #debug comments ----------------
+            #File.open("#{out[i][out[i].index('/media/')+7..]}", 'wb') { |fp| fp.write(response.body) }
+            #IO.copy_stream(URI.open("#{out[i]}:orig"), "./test_files/#{out[i][out[i].index('/media/')+7..]}")
+            #p response ------------------
+            for j in 0..response[i]['tweet']["media"]['all'].length-1 do
+              media=response[i]['tweet']["media"]['all'][j]
+              if i==0 and j==0
+                capt= "#{quote.join("\n")}\n#{author_hashtag.uniq.join(" ")}\n#{source_lnk.join("\n")}"
+              else
+                capt=""
+              end
+              case media["type"]
+              when "video"
+                out_compressed<<Telegram::Bot::Types::InputMediaVideo.new(
+                    type:"video",
+                    media:media["url"],
                     caption:capt,
                     parse_mode:"HTML"
                     )
-              out_document<<Telegram::Bot::Types::InputMediaDocument.new(
-                media:"#{media["url"]}:orig"
+              when "gif"
+                Listener.bot.api.send_animation(
+                  chat_id:chat__id,
+                  animation: individual_response["tweet"]["media"]["videos"][j]["url"],
+                  caption:capt,
+                  parse_mode:"HTML"
+                )
+              when "photo"
+                out_compressed<<Telegram::Bot::Types::InputMediaPhoto.new(
+                      media:"#{media["url"]}:orig",
+                      caption:capt,
+                      parse_mode:"HTML"
+                      )
+                out_document<<Telegram::Bot::Types::InputMediaDocument.new(
+                  media:"#{media["url"]}:orig"
+                  )
+              end
+            end
+          end
+          out_compressed=out_compressed.each_slice(10).to_a
+          out_document=out_document.each_slice(10).to_a
+        when "Bluesky"
+          if !response.is_a? (Array)
+            response=[response]
+          end
+          p "1"
+          #p response
+          first_link=response[0][:url]
+          count=0
+          #"post_info":post_info,"username":username,"post_id":post_id,"url":url
+          for individual_response in response #adding caption
+
+            #p individual_response
+            author_hashtag<<"##{individual_response[:username]}"
+  
+            source_lnk<<"<a href=\"#{individual_response[:url]}\">Source bluesky#{(count!=0)? " "+(count+1).to_s : ""}</a>"#""+message.text        
+  
+            quote<<"<blockquote>#{StandartMessages.transform_string(individual_response[:post_info]["record"]["text"])}</blockquote>"
+            count+=1
+            p "2"
+          end
+          
+          p "FUUUUUUUUUUUU"
+          #p quote
+          #p author_hashtag
+          #p source_lnk
+          if quote.length>=2
+            quote=[""]
+          end
+          p response
+
+          for i in 0..response.length-1 do #getting all media links
+            #debug comments ----------------
+            #File.open("#{out[i][out[i].index('/media/')+7..]}", 'wb') { |fp| fp.write(response.body) }
+            #IO.copy_stream(URI.open("#{out[i]}:orig"), "./test_files/#{out[i][out[i].index('/media/')+7..]}")
+            #p response ------------------
+            media=response[i][:post_info]['embed']
+            #p "i=#{i}"
+            if media.has_key?("images")
+              p media["images"]
+              for image in media['images']
+                if i==0 and image==media['images'][0]
+                  p "image=#{image} media=#{media['images'][0]}"
+                  capt= "#{quote.join("\n")}\n#{author_hashtag.uniq.join(" ")}\n#{source_lnk.join("\n")}"
+                else
+                  capt=""
+                end
+                out_compressed<<Telegram::Bot::Types::InputMediaPhoto.new(
+                      media:image["fullsize"],
+                      caption:capt,
+                      parse_mode:"HTML"
+                      )
+                out_document<<Telegram::Bot::Types::InputMediaDocument.new(
+                  media:image["fullsize"]
+                  )
+              end
+            elsif media.has_key?("playlist")
+              return
+              if image==media['playlist'][0]
+                capt= "#{quote.join("\n")}\n#{author_hashtag.uniq.join(" ")}\n#{source_lnk.join("\n")}"
+              else
+                capt=""
+              end
+              out_compressed<<Telegram::Bot::Types::InputMediaVideo.new(
+                type:"video",
+                media:media["playlist"],
+                caption:capt,
+                parse_mode:"HTML"
                 )
             end
           end
+          #p out_compressed
+          out_compressed=out_compressed.each_slice(10).to_a
+          out_document=out_document.each_slice(10).to_a
         end
-        out_compressed=out_compressed.each_slice(10).to_a
-        out_document=out_document.each_slice(10).to_a
-        #p "....................................."
+        
+       #p "....................................."
         #p out_compressed
         #p out_document
         #p "-----------------"
         #p "fffffffffffffffffffffffffffffff"
+        
+        #cheching if bot is member of comments chat
         comment_chat_available=false
         begin
           temt=Listener.bot.api.get_chat(chat_id:chat__id).linked_chat_id
           Listener.bot.api.get_chat(chat_id:temt)
-          comment_chat_available=true
+          self_user_id=Listener.bot.api.get_me().id
+          #p "temt=#{temt}__self_user_id=#{self_user_id}"
+          chat_memb=Listener.bot.api.get_chat_member(chat_id:temt,user_id:self_user_id)
+          if chat_memb.status=="administrator"
+            comment_chat_available=true
+          end
         rescue
+          
         end
+        #p "out_document="+out_document.to_s
         if out_document!=[] and comment_chat_available
+          p "Comment chat is found, adding uncompressed links"
+          Listener.bot.logger.info("Comment chat is found, adding uncompressed links")
           Bot_Globals::Uncompressed_Links<<{source_lnk:first_link,chat__id:chat__id,out_document:out_document}
         end
+        #p Bot_Globals::Uncompressed_Links
         begin
           for upld in out_compressed
             #p upld
@@ -130,9 +208,10 @@ class FishSocket
             sleep(2)
           end
         rescue Exception=> e
-          Listener.bot.logger.error("#{self.message}\n #{e}\n#{e.backtrace}")
+          Listener.bot.logger.error("#{message}\n #{e}\n#{e.backtrace}")
+          p "gggggggg"
           p e
-          p e.backtrace
+          print e.backtrace.join("\n")
           #p e.backtrace
           case e.to_s
           when /Internal Server Error/
@@ -158,6 +237,7 @@ class FishSocket
           return
         end
         return #while upper todo is no completed
+
         sleep(4)
         begin
           sleep(2*out_compressed.length)
@@ -216,7 +296,7 @@ class FishSocket
               s.to_s.sub! "https://fxtwitter.com",api_link
           when /https:\/\/x.com/
               s.to_s.sub! "https://x.com", api_link
-          when /https:\/\/x.com/
+          when /https:\/\/fixupx.com/
               s.to_s.sub! "https://fixupx.com", api_link
           end
           #tw_link+='/en'
@@ -264,6 +344,12 @@ class FishSocket
       end
       def process(message)
         #p "JJJJJ=";p message
+        case message.photo
+        when ""
+        else
+          #Listener::Response.std_message(message,"#{message.photo}")
+          p message.photo
+        end
         case message.text
         when '/start', 'команды','/commands','/how_to'
           Listener::Response.std_message(message,"https://telegra.ph/How-to-twitter-embed-bot-05-22")
@@ -273,7 +359,6 @@ class FishSocket
           Listener::Response.std_message(message,"Contribute on\nhttps://github.com/ALEKSEYR554/twitter_to_images_telegram")
         when "/remove_cache"
           return if not Codes.is_admin?(message.from)
-          Listener::Response.std_message(message,Bot_Globals::Uncompressed_Links)
           for i in Bot_Globals::Uncompressed_Links
             Bot_Globals::Uncompressed_Links.delete(i)
           end
@@ -283,13 +368,53 @@ class FishSocket
           response= JSON.parse(response)
 
           chat__id = (defined?message.chat.id) ? message.chat.id : message.message.chat.id
+          begin
           Listener.bot.api.delete_message(chat_id:chat__id, message_id:message.message_id)
+          rescue Exception=>e
+            Listener.bot.logger(e)
+          end
           
-
-          StandartMessages.response_to_images(message,response)
+          StandartMessages.response_to_images(message,response,"twitter")
           return
-          
-        when /https:\/\/(fxtwitter|twitter|x|fixupx)\.com/ #https:\/\/(fx|)twitter\.com.*\/photo\/
+        when /https:\/\/bsky\.app\/profile\/(.*?)\/post/
+          p "ffffffffffffffffffff"
+          if not message.from
+            chat__id = (defined?message.chat.id) ? message.chat.id : message.message.chat.id
+            begin
+              Listener.bot.api.delete_message(chat_id:chat__id, message_id:message.message_id)
+            rescue Exception => e
+              Listener.bot.logger.warn(e)
+              return
+            end
+            link=message.text
+            link=link.split("\n")
+            Listener.bot.logger.info("bluesky=#{link}")
+            response=[]
+            for s in link
+              begin
+                response=Faraday.new(tw_link, headers: { 'User-Agent' => 'twitter_images_telegrambot/1.0' }).get
+              rescue Exception=>e
+                if e.to_s.include? "Blocking operation timed out"
+                  sleep(1)
+                  retry
+                end
+              end
+              #url = "https://bsky.app/profile/mishacak3s.bsky.social/post/3l6x5hqqpna2b"
+              url=s
+              username = url.match(%r{profile/(.*?)/post})[1]
+              post_id=url.match(%r{post/(.*)})[1]
+              did= Faraday.get("https://#{username}/.well-known/atproto-did").body
+              post_info=Faraday.get("https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=at://#{did}/app.bsky.feed.post/#{post_id}&depth=0").body
+              post_info= JSON.parse(post_info)["thread"]["post"]
+              return if post_info["embed"].nil?
+
+              response.append({"post_info":post_info,"username":username,"post_id":post_id,"url":url})
+            end
+            p response
+            response_to_images(message,response,"Bluesky")
+          end
+
+        when /https:\/\/(fxtwitter|twitter|x)\.com/ #https:\/\/(fx|)twitter\.com.*\/photo\/
           #begin
           source_lnk=""
           tw_link=""
@@ -306,17 +431,16 @@ class FishSocket
             #p chat__id
             begin
               Listener.bot.api.delete_message(chat_id:chat__id, message_id:message.message_id)
-            rescue Exception=>e
+            rescue Exception => e
               Listener.bot.logger.warn(e)
               return
             end
-
 
             resp=StandartMessages.get_fxtwitter_response(s)
             return if not resp
 
 
-            StandartMessages.response_to_images(message,resp)
+            StandartMessages.response_to_images(message,resp,"twitter")
             return
           end
           #rescue Exception => e
@@ -333,6 +457,14 @@ class FishSocket
         when "/send_latest_log"
           return if not Codes.is_admin?(message.from)
           io_log=Faraday::UploadIO.new('log.log', 'log/log')
+          Listener::Response.send_document(message,io_log)
+          io_log.close
+        when "/send_other_logs"
+          return if not Codes.is_admin?(message.from)
+          io_log=Faraday::UploadIO.new('log.log.0', 'log/log')
+          Listener::Response.send_document(message,io_log)
+          io_log.close
+          io_log=Faraday::UploadIO.new('log.log.1', 'log/log')
           Listener::Response.send_document(message,io_log)
           io_log.close
         when "test"
@@ -353,11 +485,11 @@ class FishSocket
               end
             end
           end        #Response.std_message "#{message.forward_from_chat.id}"
-          unless message.caption.nil?
-            if message.caption.include? "t.me"
-              Listener::Response.edit_message_caption(message,nil)
-            end
-          end
+          #unless message.caption.nil?
+          #  if message.caption.include? "t.me"
+          #    Listener::Response.edit_message_caption(message,nil)
+          #  end
+          #end
         end
       end
       module_function(
