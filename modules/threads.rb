@@ -16,6 +16,11 @@ class FishSocket
         else #sending uncompressed in comments
           for i in 0..Bot_Globals::Uncompressed_Links.length-1
             #p message.forward_origin.chat.id 
+            if Time.at((Time.now.to_i-Bot_Globals::Uncompressed_Links[i][:unix_date]).abs).min>=2
+              Bot_Globals::Uncompressed_Links.delete(Bot_Globals::Uncompressed_Links[i])
+              next
+            end
+            break if !message.forward_origin.is_a?(Telegram::Bot::Types::MessageOriginChannel)
             bot.logger.info("Проверяем на наличие нужной ссылки Сообщение в чате:#{message.chat.id} переслано из:#{message.forward_origin.chat.id}")
             #return if Bot_Globals::Uncompressed_Links==[]
             #p Bot_Globals::Uncompressed_Links

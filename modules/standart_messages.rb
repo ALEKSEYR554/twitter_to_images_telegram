@@ -192,7 +192,7 @@ class FishSocket
         if out_document!=[] and comment_chat_available
           p "Comment chat is found, adding uncompressed links"
           Listener.bot.logger.info("Comment chat is found, adding uncompressed links")
-          Bot_Globals::Uncompressed_Links<<{source_lnk:first_link,chat__id:chat__id,out_document:out_document}
+          Bot_Globals::Uncompressed_Links<<{source_lnk:first_link,chat__id:chat__id,out_document:out_document,unix_date:Time.now.to_i}
         end
         #p Bot_Globals::Uncompressed_Links
         begin
