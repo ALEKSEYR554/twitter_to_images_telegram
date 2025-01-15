@@ -75,7 +75,7 @@ class FishSocket
               when "gif"
                 Listener.bot.api.send_animation(
                   chat_id:chat__id,
-                  animation: individual_response["tweet"]["media"]["videos"][j]["url"],
+                  animation: individual_response["tweet"]["media"]["all"][j]["url"],
                   caption:capt,
                   parse_mode:"HTML"
                 )
@@ -219,7 +219,7 @@ class FishSocket
               sleep(1)
               retry
           when /Too Many Requests: retry after/
-              ttt=e.to_s[e.to_s.index('parameters: "{"retry_after"=>')+29..e.to_s.index('}")')-1]
+              ttt=e.to_s[e.to_s.index('parameters: {"retry_after"=>')+28..e.to_s.index('})')-1]
               Listener.bot.logger.warn(e)
               sleep(ttt.to_i)
               retry
@@ -258,7 +258,7 @@ class FishSocket
             Listener.bot.logger.info(e)
             retry
           when /Too Many Requests: retry after/
-              ttt=e.to_s[e.to_s.index('parameters: "{"retry_after"=>')+29..e.to_s.index('}")')-1]
+              ttt=e.to_s[e.to_s.index('parameters: {"retry_after"=>')+28..e.to_s.index('})')-1]
               Listener.bot.logger.warn(e)
               sleep(ttt.to_i)
               retry

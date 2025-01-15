@@ -9,6 +9,7 @@ require './modules/callback_messages'
 require './modules/codes'
 require './modules/threads'
 require './modules/inline_query'
+require './modules/logger_overrite'
 require 'open-uri'
 require "net/http"
 require 'json'
@@ -18,6 +19,7 @@ class FishSocket
     super
     puts "RUNNING"
     TelegramConstants.setup
+    logger_overrite()
     p TelegramConstants::WHITE_LIST_IDS
     Telegram::Bot::Client.run(TelegramConstants::API_KEY, logger: Logger.new("log.log",3, 10 * 1024 * 1024)) do |bot|
       # Start time variable, for exclude message what was sends before bot starts

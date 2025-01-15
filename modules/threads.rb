@@ -6,21 +6,19 @@ class FishSocket
         #p "ORIGINAAAAAAAAAAAAAAAAAAAAAAAAAAA"
         #p "CAPTION======#{message.caption}"
         #p message
-        if Bot_Globals::Uncompressed_Links.length>=10
-          for i in Bot_Globals::Uncompressed_Links
-            Bot_Globals::Uncompressed_Links.delete(i)
-          end
-        end
         if Bot_Globals::Uncompressed_Links==[]
           return
         else #sending uncompressed in comments
           for i in 0..Bot_Globals::Uncompressed_Links.length-1
             #p message.forward_origin.chat.id 
+            next if Bot_Globals::Uncompressed_Links[i]==nil
+            break if !message.forward_origin.is_a?(Telegram::Bot::Types::MessageOriginChannel)
+
             if Time.at((Time.now.to_i-Bot_Globals::Uncompressed_Links[i][:unix_date]).abs).min>=2
               Bot_Globals::Uncompressed_Links.delete(Bot_Globals::Uncompressed_Links[i])
               next
             end
-            break if !message.forward_origin.is_a?(Telegram::Bot::Types::MessageOriginChannel)
+            
             bot.logger.info("Проверяем на наличие нужной ссылки Сообщение в чате:#{message.chat.id} переслано из:#{message.forward_origin.chat.id}")
             #return if Bot_Globals::Uncompressed_Links==[]
             #p Bot_Globals::Uncompressed_Links
@@ -28,8 +26,8 @@ class FishSocket
             #p Bot_Globals::Uncompressed_Links[i][:chat__id]
             #p message.caption_entities
             bot.logger.info(Bot_Globals::Uncompressed_Links)
+            next if Bot_Globals::Uncompressed_Links==[]
             next if Bot_Globals::Uncompressed_Links[i]==nil
-
             if message.forward_origin.chat.id==Bot_Globals::Uncompressed_Links[i][:chat__id]
               return if message.caption_entities==nil
               #p message
@@ -61,7 +59,7 @@ class FishSocket
                       bot.logger.info(e)
                       retry
                     when /Too Many Requests: retry after/
-                        ttt=e.to_s[e.to_s.index('parameters: "{"retry_after"=>')+29..e.to_s.index('}")')-1]
+                        ttt=e.to_s[e.to_s.index('parameters: {"retry_after"=>')+28..e.to_s.index('})')-1]
                         bot.logger.warn(e)
                         sleep(ttt.to_i)
                         retry
@@ -99,7 +97,8 @@ class FishSocket
       rescue Exception => e
         sleep(1)
         p "Errr"
-        bot.logger.error("")
+        bot.logger.error(e)
+        bot.logger.error(e.backtrace)
         retry
         #  Listener::Response.std_message("ERRRRRRRRRRRRRRROR",TelegramConstants::ERROR_CHANNEL_ID)
         #  Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)
