@@ -95,17 +95,56 @@ class FishSocket
                       
                       answer_inline << case media["type"]
                           when "video"
-                              Telegram::Bot::Types::InlineQueryResultVideo.new(
-                                  id:"#{i}",
-                                  video_url:media["url"],
-                                  mime_type:"video/mp4",
-                                  caption:capt,
-                                  parse_mode:"HTML",
-                                  video_width:media["width"],
-                                  video_height:media["height"],
-                                  thumbnail_url:media["thumbnail_url"],
-                                  title:"Twitter video"
-                                  )
+                                video_to_upload=media
+                                video_too_large=true
+                                if media.has_key? "variants"
+                                    calculation=media["duration"]/8/1024/1024
+                                    #for i in media["variants"].length-1..1
+                                    (media["variants"].length-1).downto(1).each { |i|
+                                        #print "\ncalculating\n"
+
+                                        next if !media["variants"][i].has_key?("bitrate")
+                                        p (calculation*media["variants"][i]["bitrate"]).ceil()
+                                        p ""
+                                        if (calculation*media["variants"][i]["bitrate"]).ceil()<21
+                                            video_to_upload=media["variants"][i]
+                                            video_too_large=false
+                                            if i!=(media["variants"].length-1)
+                                                capt="Video size is not maximum, check original tweet\n"+capt
+                                            end
+                                            break
+                                        end
+                                    }
+                                end
+                                #p "\nvideo_to_upload=#{video_to_upload}"
+                                if video_too_large
+                                    Listener.bot.api.answer_inline_query(
+                                    inline_query_id: message.id,
+                                    results: [Telegram::Bot::Types::InlineQueryResultArticle.new(
+                                        id: "0",
+                                        title: "Video too large",
+                                        input_message_content: Telegram::Bot::Types::InputTextMessageContent.new(
+                                            message_text: "Video too large, sorry bot is not downloading and/or compressing anything it is just forwarder",
+                                            parse_mode:"html",
+                                            link_preview_options:Telegram::Bot::Types::LinkPreviewOptions.new(
+                                                is_disabled:true)
+                                            )
+                                    )
+                                    ]
+                                    )
+                                else
+                                    Telegram::Bot::Types::InlineQueryResultVideo.new(
+                                        id:"#{i}",
+                                        video_url:video_to_upload["url"],
+                                        mime_type:"video/mp4",
+                                        caption:capt,
+                                        parse_mode:"HTML",
+                                        video_width:media["width"],
+                                        video_height:media["height"],
+                                        thumbnail_url:media["thumbnail_url"],
+                                        title:"Twitter video"
+                                        )
+                                end
                           when "gif"
                               Telegram::Bot::Types::InlineQueryResultMpeg4Gif.new(
                                   id:"#{i}",

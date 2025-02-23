@@ -40,7 +40,7 @@ class FishSocket
         if not e.to_s.include? "bot was blocked by the user"
           bot.logger.error(self.message)
           bot.logger.error("#{e}\n#{e.backtrace}")
-          File.write("#{Time.now.to_i}.txt", "#{self.message}\n#{Time.now}\n #{e}\n#{e.backtrace}")#Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)#Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)
+          #File.write("#{Time.now.to_i}.txt", "#{self.message}\n#{Time.now}\n #{e}\n#{e.backtrace}")#Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)#Listener::Response.std_message("#{e}",TelegramConstants::ERROR_CHANNEL_ID)
           Listener.bot.api.send_message(chat_id:TelegramConstants::ERROR_CHANNEL_ID, text:"Я КРАШНУЛСЯ, но retry")
           Listener.bot.api.send_message(chat_id:TelegramConstants::ERROR_CHANNEL_ID, text:"#{e.to_s[0..4000]}")
         end
