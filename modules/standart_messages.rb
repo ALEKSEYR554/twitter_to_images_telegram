@@ -66,9 +66,28 @@ class FishSocket
               end
               case media["type"]
               when "video"
+                video_to_upload=media
+                if media.has_key? "variants"
+                    (media["variants"].length-1).downto(1).each { |i|
+                        video_url=media["variants"][i]["url"]
+                        next if video_url.include?(".m3u8")
+                        size_in_bytes = InlineQuery.get_file_size_from_url(video_url)
+
+                        if size_in_bytes
+                            size_in_mb = size_in_bytes / (1024.0 * 1024.0)
+                        else
+                            size_in_mb=99
+                        end
+                        p ""
+                        if (size_in_mb<=21)
+                            video_to_upload=media["variants"][i]
+                            break
+                        end
+                    }
+                end
                 out_compressed<<Telegram::Bot::Types::InputMediaVideo.new(
                     type:"video",
-                    media:media["url"],
+                    media:video_to_upload["url"],
                     caption:capt,
                     parse_mode:"HTML"
                     )
@@ -166,7 +185,83 @@ class FishSocket
           #p out_compressed
           out_compressed=out_compressed.each_slice(10).to_a
           out_document=out_document.each_slice(10).to_a
+        when "Baraag"
+          p ""
+          if response[0].is_a? String
+            return
+          end
+          p response
+          if !response.is_a? (Array)
+            response=[response]
+          end
+          p "2"
+          #p response
+          first_link=response[0]["tweet"]["url"]
+          count=0
+          for individual_response in response #adding caption
+            author_hashtag<<"##{individual_response["tweet"]["author"]["screen_name"]}"
+  
+            source_lnk<<"<a href=\"#{individual_response["tweet"]["url"]}\">Source baraag#{(count!=0)? " "+(count+1).to_s : ""}</a>"#""+message.text        
+  
+            quote<<"<blockquote>#{StandartMessages.transform_string(individual_response["content"])}</blockquote>"
+            count+=1
+            p "2"
+          end
+          
+          #out=out.each_slice(10).to_a
+          
+          
+          p "FUUUUUUUUUUUU"
+          #p quote
+          #p author_hashtag
+          #p source_lnk
+          if quote.length>=2
+            quote=[""]
+          end
+          for i in 0..response.length-1 do #getting all media links
+            #debug comments ----------------
+            #File.open("#{out[i][out[i].index('/media/')+7..]}", 'wb') { |fp| fp.write(response.body) }
+            #IO.copy_stream(URI.open("#{out[i]}:orig"), "./test_files/#{out[i][out[i].index('/media/')+7..]}")
+            #p response ------------------
+            for j in 0..response[i]['media_attachments'].length-1 do
+              media=response[i]['media_attachments'][j]
+              if i==0 and j==0
+                capt= "#{quote.join("\n")}\n#{author_hashtag.uniq.join(" ")}\n#{source_lnk.join("\n")}"
+              else
+                capt=""
+              end
+              case media["type"]
+              when "video"
+                out_compressed<<Telegram::Bot::Types::InputMediaVideo.new(
+                    type:"video",
+                    media:media["url"],
+                    caption:capt,
+                    parse_mode:"HTML"
+                    )
+              when "gifv"
+                Listener.bot.api.send_animation(
+                  chat_id:chat__id,
+                  animation: media["url"],
+                  caption:capt,
+                  parse_mode:"HTML"
+                )
+              when "image"
+                out_compressed<<Telegram::Bot::Types::InputMediaPhoto.new(
+                      media:"#{media["url"]}",
+                      caption:capt,
+                      parse_mode:"HTML"
+                      )
+                out_document<<Telegram::Bot::Types::InputMediaDocument.new(
+                  media:"#{media["url"]}"
+                  )
+              end
+            end
+          end
+          out_compressed=out_compressed.each_slice(10).to_a
+          out_document=out_document.each_slice(10).to_a
+        
         end
+
         
        #p "....................................."
         #p out_compressed
@@ -376,6 +471,36 @@ class FishSocket
           
           StandartMessages.response_to_images(message,response,"twitter")
           return
+        when /https:\/\/baraag.net\/(.*?)\/[0-9]+/
+          return
+          if not message.from
+            chat__id = (defined?message.chat.id) ? message.chat.id : message.message.chat.id
+            begin
+              Listener.bot.api.delete_message(chat_id:chat__id, message_id:message.message_id)
+            rescue Exception => e
+              Listener.bot.logger.warn(e)
+              return
+            end
+            link=message.text
+            link=link.split("\n")
+            Listener.bot.logger.info("baraag=#{link}")
+            response=[]
+            for s in link
+              #url = "https://baraag.net/@Phinci/114570991029426425"
+              url=s
+              username = url.match(%r{https:\/\/baraag.net\/(.*?)\/[0-9]+})[1]
+
+              post_id=/\/[0-9]+/.match(url)[0][1..]
+              post_info=Faraday.get("https://baraag.net/api/v1/statuses/#{post_id}").body
+
+              post_info= JSON.parse(post_info)#["thread"]["post"]
+              return if post_info["media_attachments"].empty?
+
+              response.append({"post_info":post_info,"username":username,"post_id":post_id,"url":url})
+            end
+            p response
+            response_to_images(message,response,"Baraag")
+          end
         when /https:\/\/bsky\.app\/profile\/(.*?)\/post/
           p "ffffffffffffffffffff"
           if not message.from

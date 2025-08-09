@@ -2,6 +2,26 @@ class FishSocket
     module Listener
       # This module assigned to processing all InlineQuery requests
         module InlineQuery
+            def get_file_size_from_url(url_string, limit = 4)
+                raise ArgumentError, 'Превышен лимит редиректов' if limit.zero?
+                uri = URI.parse(url_string)
+              
+                http = Net::HTTP.new(uri.host, uri.port)
+                http.use_ssl = (uri.scheme == 'https')
+                request = Net::HTTP::Head.new(uri.request_uri)
+                response = http.request(request)
+                case response
+                when Net::HTTPSuccess 
+                  response['Content-Length']&.to_i
+                when Net::HTTPRedirection 
+                  new_location = response['location']
+                  get_file_size_from_url(new_location, limit - 1)
+                else
+                  nil
+                end
+              rescue StandardError
+                nil
+            end
             def process(message)
                 
                 #p "inline=#{message}" 
@@ -98,15 +118,23 @@ class FishSocket
                                 video_to_upload=media
                                 video_too_large=true
                                 if media.has_key? "variants"
-                                    calculation=media["duration"]/8/1024/1024
+                                    #calculation=media["duration"]/8/1024/1024
                                     #for i in media["variants"].length-1..1
                                     (media["variants"].length-1).downto(1).each { |i|
                                         #print "\ncalculating\n"
 
-                                        next if !media["variants"][i].has_key?("bitrate")
-                                        p (calculation*media["variants"][i]["bitrate"]).ceil()
+                                       # next if !media["variants"][i].has_key?("url")
+                                        video_url=media["variants"][i]["url"]
+                                        next if video_url.include?(".m3u8")
+                                        size_in_bytes = get_file_size_from_url(video_url)
+
+                                        if size_in_bytes
+                                            size_in_mb = size_in_bytes / (1024.0 * 1024.0)
+                                        else
+                                            size_in_mb=99
+                                        end
                                         p ""
-                                        if (calculation*media["variants"][i]["bitrate"]).ceil()<21
+                                        if (size_in_mb<=21)
                                             video_to_upload=media["variants"][i]
                                             video_too_large=false
                                             if i!=(media["variants"].length-1)
@@ -217,7 +245,8 @@ class FishSocket
                 end
             end
             module_function(
-                :process
+                :process,
+                :get_file_size_from_url
             )
         end
     end
