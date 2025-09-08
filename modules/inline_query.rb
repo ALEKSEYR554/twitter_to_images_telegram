@@ -186,12 +186,12 @@ class FishSocket
                           when "photo"
                               Telegram::Bot::Types::InlineQueryResultPhoto.new(
                                   id:"#{i}",
-                                  photo_url:"#{media["url"]}:orig",
+                                  photo_url:"#{media["url"]}",
                                   photo_width:media["width"],
                                   caption:capt,
                                   parse_mode:"HTML",
                                   photo_height:media["height"],
-                                  thumbnail_url:"#{media["url"]}:orig"
+                                  thumbnail_url:"#{media["url"]}"
                                   )
                       end
                   end
