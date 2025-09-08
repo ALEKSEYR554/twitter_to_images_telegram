@@ -100,12 +100,12 @@ class FishSocket
                 )
               when "photo"
                 out_compressed<<Telegram::Bot::Types::InputMediaPhoto.new(
-                      media:"#{media["url"]}:orig",
+                      media:"#{media["url"]}",
                       caption:capt,
                       parse_mode:"HTML"
                       )
                 out_document<<Telegram::Bot::Types::InputMediaDocument.new(
-                  media:"#{media["url"]}:orig"
+                  media:"#{media["url"]}"
                   )
               end
             end
