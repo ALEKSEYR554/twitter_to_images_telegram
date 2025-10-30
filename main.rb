@@ -1,15 +1,15 @@
 require 'telegram/bot'
-require './library/mac-shake'
-require './library/texts'
-require './modules/listener'
-require './modules/security'
-require './modules/standart_messages'
-require './modules/response'
-require './modules/callback_messages'
-require './modules/codes'
-require './modules/threads'
-require './modules/inline_query'
-require './modules/logger_overrite'
+require './library/mac-shake.rb'
+require './library/texts.rb'
+require './modules/listener.rb'
+require './modules/security.rb'
+require './modules/standart_messages.rb'
+require './modules/response.rb'
+require './modules/callback_messages.rb'
+require './modules/codes.rb'
+require './modules/threads.rb'
+require './modules/inline_query.rb'
+require './modules/logger_overrite.rb'
 require 'open-uri'
 require "net/http"
 require 'json'
@@ -21,7 +21,7 @@ class FishSocket
     TelegramConstants.setup
     logger_overrite()
     p TelegramConstants::WHITE_LIST_IDS
-    Telegram::Bot::Client.run(TelegramConstants::API_KEY, logger: Logger.new("log.log",3, 10 * 1024 * 1024)) do |bot|
+    Telegram::Bot::Client.run(TelegramConstants::API_KEY, logger: Logger.new("log.log",3, 10 * 1024 * 1024), url:'http://127.0.0.1:8081') do |bot|
       # Start time variable, for exclude message what was sends before bot starts
       bot.logger.info('Bot has been started')
       bot.api.send_message(chat_id: TelegramConstants::ERROR_CHANNEL_ID, text: "RUNNING")

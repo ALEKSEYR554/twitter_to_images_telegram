@@ -72,11 +72,43 @@ class FishSocket
                     return
                   end
                   response=response[0]
+                  if response["code"]==404
+                    Listener.bot.api.answer_inline_query(
+                      inline_query_id: message.id,
+                      results: [Telegram::Bot::Types::InlineQueryResultArticle.new(
+                        id: "0",
+                        title: "invalid link",
+                        input_message_content: Telegram::Bot::Types::InputTextMessageContent.new(
+                            message_text: "invalid link",
+                            parse_mode:"html",
+                            link_preview_options:Telegram::Bot::Types::LinkPreviewOptions.new(
+                                is_disabled:true)
+                            )
+                      )
+                      ]
+                    )
+                    return
+                  end
                   #p "???"
                   #p "---"
                   #p response
                   #p "---"
                   p "respin==#{response}"
+                  Listener.bot.logger.info("respin==#{response}")
+                  if !response.is_a? String
+                    if response['tweet'].has_key?("media")
+                      if !response['tweet']["media"].has_key?("all")
+                        response=response['tweet']["text"]
+                        if response==""
+                            response="error getting tweet text"
+                        end
+                      end
+                    else
+                      response="error getting tweet"
+                    end
+                  end
+
+
                   if response.is_a? String
                     begin
                     Listener.bot.api.answer_inline_query(
@@ -99,7 +131,7 @@ class FishSocket
                     return
                   end
                   #p response
-                  return if response["code"]==404
+                  
                   #p "fuck"
                   
                   answer_inline=[]
