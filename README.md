@@ -1,7 +1,8 @@
 Bot for sending images/gifs/videos from twitter directly to telegram if it satisfy file size in MB(AKA send by not blue mark user)
 
 ## Demonstration
-<https://raw.githubusercontent.com/ALEKSEYR554/twitter_to_images_telegram/refs/heads/main/demo/demo.mp4>
+
+https://github.com/user-attachments/assets/b5248c17-270e-43d7-9f02-da205fd37b07
 
 ## Credentials
 By default all credentials are stored in [mac-shake.rb](library/mac-shake.rb)
