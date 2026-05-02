@@ -139,12 +139,18 @@ class FishSocket
                   for i in 0..response['tweet']["media"]['all'].length-1 do
                       media=response['tweet']["media"]['all'][i]
                       #capt="#{i+1}/#{response['tweet']["media"]['all'].length}\n<a href=\"#{message.query}\">Twitter</a>"
-                      capt="<a href=\"#{message.query}\">Twitter</a>"
+                      capti="<a href=\"#{message.query}\">Twitter</a>"
                       #if !Security::is_subscribe(message.from)
                       #    #p "unsub"
                       #    capt+="\n#{TelegramConstants::CHANNEL_LINK}\nSubscribe to disable it" unless Codes.is_in_whitelist?(message.from)
                       #end
-                      
+                      original_caption = response['tweet']["text"]
+
+                      original_caption = "<blockquote expandable>#{original_caption[0..1024-60]}</blockquote>"
+                      p "original_caption = #{original_caption}"
+                      capt = original_caption + capti 
+                      p "capt = #{capt}"
+
                       answer_inline << case media["type"]
                           when "video"
                                 video_to_upload=media
@@ -170,12 +176,13 @@ class FishSocket
                                             video_to_upload=media["variants"][i]
                                             video_too_large=false
                                             if i!=(media["variants"].length-1)
-                                                capt="Video size is not maximum, check original tweet\n"+capt
+                                                capt=original_caption+"Video size is not maximum, check original tweet\n"+capti
                                             end
                                             break
                                         end
                                     }
                                 end
+
                                 #p "\nvideo_to_upload=#{video_to_upload}"
                                 if video_too_large
                                     Listener.bot.api.answer_inline_query(
