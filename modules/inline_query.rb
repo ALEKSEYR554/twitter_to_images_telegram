@@ -146,7 +146,7 @@ class FishSocket
                       #end
                       original_caption = response['tweet']["text"]
 
-                      original_caption = "<blockquote expandable>#{original_caption[0..1024-60]}</blockquote>"
+                      original_caption = "<blockquote expandable>#{original_caption[0..1024-60]}</blockquote>\n"
                       p "original_caption = #{original_caption}"
                       capt = original_caption + capti 
                       p "capt = #{capt}"
