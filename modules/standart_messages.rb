@@ -386,7 +386,7 @@ class FishSocket
                     supports_streaming: true,
                     width: item[:width],     
                     height: item[:height],   
-                    duration: item[:duration]
+                    duration: item[:duration].round()
                   }
                   
                   if item[:thumb_downloaded]
@@ -414,7 +414,7 @@ class FishSocket
                     supports_streaming: true,
                     width: item[:width],     
                     height: item[:height],   
-                    duration: item[:duration]
+                    duration: item[:duration].round()
                   }
                   if item[:thumb_url]
                     media_opts[:thumbnail] = item[:thumb_url]
