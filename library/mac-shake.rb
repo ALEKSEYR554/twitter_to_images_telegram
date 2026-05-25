@@ -5,6 +5,7 @@ module TelegramConstants
   ADMIN_LIST=["ID","ID"]
   WHITE_LIST_IDS=['ID','ID']#may not include admins, different arrays
   #CHANNEL_LINK="@type or t.me"
+  DOWNLOAD_IMAGES=true
   def setup()
     #file = File.open("whitelist.txt")
     #file.readlines.map(&:chomp).each{|element| TelegramConstants::WHITE_LIST_IDS<<element}
