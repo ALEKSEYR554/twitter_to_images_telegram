@@ -12,13 +12,16 @@ class FishSocket
       end
       def response_to_images(message,response,host_url="twitter")
         #p "----------------"
+        download_images = TelegramConstants::DOWNLOAD_IMAGES
         out=[]
         chat__id = (defined?message.chat.id) ? message.chat.id : message.message.chat.id
         author_hashtag=[]
         source_lnk=[]
         quote=[]
         out_compressed=[];out_document=[]
-
+        temp_files = []
+        out_compressed_items = []
+        out_document_items = []
         case host_url
         when "twitter"
           if response[0].is_a? String
@@ -64,54 +67,123 @@ class FishSocket
               else
                 capt=""
               end
+
+              url_to_use = media["url"]
+              p "url_to_use = #{url_to_use}"
+
               case media["type"]
               when "video"
                 video_to_upload=media
                 if media.has_key? "variants"
-                    (media["variants"].length-1).downto(1).each { |i|
-                        video_url=media["variants"][i]["url"]
-                        next if video_url.include?(".m3u8")
-                        size_in_bytes = InlineQuery.get_file_size_from_url(video_url)
+                  url_to_use = media["variants"][-1]["url"]
+                  (media["variants"].length-1).downto(1).each { |id|
+                      video_url=media["variants"][id]["url"]
+                      next if video_url.include?(".m3u8")
+                      size_in_bytes = InlineQuery.get_file_size_from_url(video_url)
 
-                        if size_in_bytes
-                            size_in_mb = size_in_bytes / (1024.0 * 1024.0)
-                        else
-                            size_in_mb=99
-                        end
-                        p ""
-                        if (size_in_mb<=21)
-                            video_to_upload=media["variants"][i]
-                            break
-                        end
-                    }
+                      if size_in_bytes
+                          size_in_mb = size_in_bytes / (1024.0 * 1024.0)
+                      else
+                          size_in_mb=99
+                      end
+                      p ""
+                      if (size_in_mb<=21)
+                          video_to_upload=media["variants"][id]
+                          break
+                      end
+                  }
                 end
-                out_compressed<<Telegram::Bot::Types::InputMediaVideo.new(
-                    type:"video",
-                    media:video_to_upload["url"],
+              when "gif"
+                url_to_use = individual_response["tweet"]["media"]["all"][j]["url"]
+              end
+              item_downloaded = false
+              media_source_compressed = url_to_use
+              media_source_document = url_to_use
+              
+              file_io_comp = nil
+              file_io_doc = nil
+              exten = "image/jpeg"
+
+              url_thumb_to_use = (media["type"] == "video") ? media["thumbnail_url"] : nil
+
+              if download_images && media["type"] != "gif"
+                begin
+                  ext = url_to_use.split('.').last.split('?').first
+                  ext = 'jpg' if ext.to_s.empty? || ext.length > 4
+                  exten = (ext == 'mp4') ? 'video/mp4' : 'image/jpeg'
+                  exten = 'image/png' if ext == 'png'
+                  
+                  tf = Tempfile.new(['twit_media', ".#{ext}"])
+                  tf.binmode
+                  URI.open(url_to_use) { |io| tf.write(io.read) }
+                  tf.close
+                  temp_files << tf
+                  
+                  # Используем Faraday::UploadIO точно как в твоем рабочем коде
+                  file_io_comp = Faraday::UploadIO.new(tf.path, exten)
+                  file_io_doc  = Faraday::UploadIO.new(tf.path, exten) if media["type"] == "photo"
+                  item_downloaded = true
+
+                  if media["type"] == "video" && url_thumb_to_use
+                    ext_thumb = url_thumb_to_use.split('.').last.split('?').first
+                    ext_thumb = 'jpg' if ext_thumb.to_s.empty? || ext_thumb.length > 4
+                    
+                    tf_thumb = Tempfile.new(['twit_thumb', ".#{ext_thumb}"])
+                    tf_thumb.binmode
+                    URI.open(url_thumb_to_use) { |io| tf_thumb.write(io.read) }
+                    tf_thumb.close
+                    temp_files << tf_thumb
+                    
+                    file_io_thumb = Faraday::UploadIO.new(tf_thumb.path, 'image/jpeg')
+                    thumb_downloaded = true
+                  end
+                rescue => e
+                  Listener.bot.logger.error("Download failed: #{e}")
+                  item_downloaded = false
+                end
+              end
+
+
+              p "media_source_compressed = #{media_source_compressed}"
+              request_sample={
+                chat_id: message.chat.id,
+                media: []
+              }
+              case media["type"]
+              when "video"
+                out_compressed_items << { 
+                  type: "video",
+                  downloaded: item_downloaded, 
+                  url: url_to_use, 
+                  io: file_io_comp, 
+                  duration: media["duration"], width: media["width"], height: media["height"], 
+                  exten: "video/mp4", 
+                  thumb_downloaded: thumb_downloaded,
+                  thumb_url: url_thumb_to_use,
+                  thumb_io: file_io_thumb,
+                  caption: capt 
+                }
+              when "gif"
+                if item_downloaded
+                  Listener.bot.api.send_animation(chat_id: chat__id, animation: Faraday::UploadIO.new(temp_files.last.path, exten), caption: capt, parse_mode: "HTML")
+                else
+                  Listener.bot.api.send_animation(
+                    chat_id:chat__id,
+                    animation: media_source_compressed,
                     caption:capt,
                     parse_mode:"HTML"
-                    )
-              when "gif"
-                Listener.bot.api.send_animation(
-                  chat_id:chat__id,
-                  animation: individual_response["tweet"]["media"]["all"][j]["url"],
-                  caption:capt,
-                  parse_mode:"HTML"
-                )
-              when "photo"
-                out_compressed<<Telegram::Bot::Types::InputMediaPhoto.new(
-                      media:"#{media["url"]}",
-                      caption:capt,
-                      parse_mode:"HTML"
-                      )
-                out_document<<Telegram::Bot::Types::InputMediaDocument.new(
-                  media:"#{media["url"]}"
                   )
+                end
+              when "photo"
+                out_compressed_items << { type: "photo", downloaded: item_downloaded, url: url_to_use, io: file_io_comp, exten: exten, caption: capt }
+                out_document_items << { type: "document", downloaded: item_downloaded, url: url_to_use, io: file_io_doc, exten: exten }
               end
             end
           end
-          out_compressed=out_compressed.each_slice(10).to_a
-          out_document=out_document.each_slice(10).to_a
+          out_compressed_slices = out_compressed_items.each_slice(10).to_a
+          out_document_slices = out_document_items.each_slice(10).to_a
+          
+          out_document = out_document_slices
         when "Bluesky"
           if !response.is_a? (Array)
             response=[response]
@@ -141,7 +213,6 @@ class FishSocket
             quote=[""]
           end
           p response
-
           for i in 0..response.length-1 do #getting all media links
             #debug comments ----------------
             #File.open("#{out[i][out[i].index('/media/')+7..]}", 'wb') { |fp| fp.write(response.body) }
@@ -158,12 +229,12 @@ class FishSocket
                 else
                   capt=""
                 end
-                out_compressed<<Telegram::Bot::Types::InputMediaPhoto.new(
+                out_compressed << Telegram::Bot::Types::InputMediaPhoto.new(
                       media:image["fullsize"],
                       caption:capt,
                       parse_mode:"HTML"
                       )
-                out_document<<Telegram::Bot::Types::InputMediaDocument.new(
+                out_document << Telegram::Bot::Types::InputMediaDocument.new(
                   media:image["fullsize"]
                   )
               end
@@ -174,7 +245,7 @@ class FishSocket
               else
                 capt=""
               end
-              out_compressed<<Telegram::Bot::Types::InputMediaVideo.new(
+              out_compressed << Telegram::Bot::Types::InputMediaVideo.new(
                 type:"video",
                 media:media["playlist"],
                 caption:capt,
@@ -232,7 +303,7 @@ class FishSocket
               end
               case media["type"]
               when "video"
-                out_compressed<<Telegram::Bot::Types::InputMediaVideo.new(
+                out_compressed << Telegram::Bot::Types::InputMediaVideo.new(
                     type:"video",
                     media:media["url"],
                     caption:capt,
@@ -246,12 +317,12 @@ class FishSocket
                   parse_mode:"HTML"
                 )
               when "image"
-                out_compressed<<Telegram::Bot::Types::InputMediaPhoto.new(
+                out_compressed << Telegram::Bot::Types::InputMediaPhoto.new(
                       media:"#{media["url"]}",
                       caption:capt,
                       parse_mode:"HTML"
                       )
-                out_document<<Telegram::Bot::Types::InputMediaDocument.new(
+                out_document << Telegram::Bot::Types::InputMediaDocument.new(
                   media:"#{media["url"]}"
                   )
               end
@@ -263,7 +334,7 @@ class FishSocket
         end
 
         
-       #p "....................................."
+        #p "....................................."
         #p out_compressed
         #p out_document
         #p "-----------------"
@@ -287,19 +358,85 @@ class FishSocket
         if out_document!=[] and comment_chat_available
           p "Comment chat is found, adding uncompressed links"
           Listener.bot.logger.info("Comment chat is found, adding uncompressed links")
-          Bot_Globals::Uncompressed_Links<<{source_lnk:first_link,chat__id:chat__id,out_document:out_document,unix_date:Time.now.to_i}
+          Bot_Globals::Uncompressed_Links<<{source_lnk:first_link,chat__id:chat__id,out_document:out_document,unix_date:Time.now.to_i, temp_files: temp_files}
         end
         #p Bot_Globals::Uncompressed_Links
         begin
-          for upld in out_compressed
-            #p upld
-            p "cmp"
-            ggg=Listener.bot.api.send_media_group(
-            chat_id: chat__id,
-            media: upld
-            )
-            #p ggg
-            #File.write("111.txt","#{ggg}")
+          p "out_compressed_slices = #{out_compressed_slices}"
+          for slice in out_compressed_slices
+            request_sample = { chat_id: chat__id, media: [] }
+            media_request_media = []
+            media_request_files = []
+
+            p "slice = #{slice}"
+            
+            slice.each_with_index do |item, i|
+              if item[:downloaded]
+                attach_name = "file#{i}"
+                if item[:type] == "photo"
+                  media_request_media << Telegram::Bot::Types::InputMediaPhoto.new(media: "attach://#{attach_name}", caption: item[:caption], parse_mode: "HTML")
+                  media_request_files << Hash[:"#{attach_name}", Faraday::FilePart.new(item[:io], item[:exten])]
+                else
+                  # Обработка видео с загруженным превью
+                  attach_thumb_name = "thumb_file#{i}"
+                  media_opts = {
+                    media: "attach://#{attach_name}",
+                    caption: item[:caption],
+                    parse_mode: "HTML",
+                    supports_streaming: true,
+                    width: item[:width],     
+                    height: item[:height],   
+                    duration: item[:duration]
+                  }
+                  
+                  if item[:thumb_downloaded]
+                    # Передаем и thumbnail, и thumb на случай разных версий библиотек
+                    media_opts[:thumbnail] = "attach://#{attach_thumb_name}"
+                    media_opts[:thumb] = "attach://#{attach_thumb_name}"
+                    media_request_files << Hash[:"#{attach_thumb_name}", Faraday::FilePart.new(item[:thumb_io], "image/jpeg")]
+                  elsif item[:thumb_url]
+                    media_opts[:thumbnail] = item[:thumb_url]
+                    media_opts[:thumb] = item[:thumb_url]
+                  end
+                  
+                  media_request_media << Telegram::Bot::Types::InputMediaVideo.new(media_opts)
+                  media_request_files << Hash[:"#{attach_name}", Faraday::FilePart.new(item[:io], item[:exten])]
+               end
+              else
+                # Если скачивание отключено или упало, шлем обычным URL
+                if item[:type] == "photo"
+                  media_request_media << Telegram::Bot::Types::InputMediaPhoto.new(media: item[:url], caption: item[:caption], parse_mode: "HTML")
+                else
+                  media_opts = {
+                    media: item[:url],
+                    caption: item[:caption],
+                    parse_mode: "HTML",
+                    supports_streaming: true,
+                    width: item[:width],     
+                    height: item[:height],   
+                    duration: item[:duration]
+                  }
+                  if item[:thumb_url]
+                    media_opts[:thumbnail] = item[:thumb_url]
+                    media_opts[:thumb] = item[:thumb_url]
+                  end
+                  media_request_media << Telegram::Bot::Types::InputMediaVideo.new(media_opts)
+                end
+              end
+            end
+            
+            temp = request_sample.dup
+
+            p "media_request_files = #{media_request_files}"
+
+            # Мерджим файлы в корень запроса (магия из твоего рабочего скрипта)
+            if media_request_files.any?
+              temp = request_sample.merge(media_request_files.inject(&:merge))
+            end
+
+            temp[:media] = media_request_media
+            p "temp = #{temp}"
+            ggg = Listener.bot.api.send_media_group(temp)
             sleep(2)
           end
         rescue Exception=> e
@@ -359,9 +496,29 @@ class FishSocket
               retry
           end
           File.write("#{Time.now.to_i}.txt", "#{Time.now}\n #{e}\n#{e.backtrace}\n#{message}")
-        end
         
-
+        ensure
+          # Закрываем дескрипторы сжатых медиа (они уже отправлены)
+          # Закрываем дескрипторы сжатых медиа и их превью
+          if defined?(out_compressed_items) && out_compressed_items
+            out_compressed_items.each do |item| 
+              p "closing item = #{item}"
+              item[:io].close if item[:io] && !item[:io].closed?
+              item[:thumb_io].close if item[:thumb_io] && !item[:thumb_io].closed? # Закрываем превью
+            end
+          end
+          # Если комменты недоступны, то несжатые файлы нам больше не нужны — удаляем их сразу.
+          # Если комменты доступны, файлы остаются жить в Bot_Globals до отправки в чат.
+          comment_chat_saved = defined?(comment_chat_available) && comment_chat_available && out_document_slices.any?
+          unless comment_chat_saved
+            if defined?(out_document_items) && out_document_items
+              out_document_items.each { |item| item[:io].close if item[:io] && !item[:io].closed? }
+            end
+            if defined?(temp_files) && temp_files
+              temp_files.each { |tf| tf.unlink rescue nil }
+            end
+          end
+        end
         #p out_document
         #p out_photo
         
