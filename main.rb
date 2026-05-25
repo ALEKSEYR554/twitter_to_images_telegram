@@ -13,6 +13,7 @@ require './modules/logger_overrite.rb'
 require 'open-uri'
 require "net/http"
 require 'json'
+require 'tempfile'
 # Entry point class
 class FishSocket
   def initialize
@@ -21,7 +22,7 @@ class FishSocket
     TelegramConstants.setup
     logger_overrite()
     p TelegramConstants::WHITE_LIST_IDS
-    Telegram::Bot::Client.run(TelegramConstants::API_KEY, logger: Logger.new("log.log",3, 10 * 1024 * 1024), url:'http://127.0.0.1:8081') do |bot|
+    Telegram::Bot::Client.run(TelegramConstants::API_KEY, logger: Logger.new("log.log",3, 10 * 1024 * 1024), url:'http://127.0.0.1:8081') do |bot|#
       # Start time variable, for exclude message what was sends before bot starts
       bot.logger.info('Bot has been started')
       bot.api.send_message(chat_id: TelegramConstants::ERROR_CHANNEL_ID, text: "RUNNING")

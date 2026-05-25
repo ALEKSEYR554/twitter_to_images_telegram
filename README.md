@@ -7,15 +7,17 @@ https://github.com/user-attachments/assets/b5248c17-270e-43d7-9f02-da205fd37b07
 ## Credentials
 By default all credentials are stored in [mac-shake.rb](library/mac-shake.rb)
 
-API_KEY - Telegram Api Key from BotFather
+API_KEY - Telegram Api Key from BotFather.
 
-ERROR_CHANNEL_ID - channel (user_id) to send errors to
+ERROR_CHANNEL_ID - channel (user_id) to send errors to.
 
-ADMIN_LIST - Admin List who can use admin commands
+ADMIN_LIST - Admin List who can use admin commands.
 
-WHITE_LIST_IDS - List of user ids who can use inline without subscribing to channel if enabled
+WHITE_LIST_IDS - List of user ids who can use inline without subscribing to channel if enabled.
 
-CHANNEL_LINK - Channel nedded to subscribe to to disable channel link while using inline mod if enabled
+CHANNEL_LINK - Channel nedded to subscribe to to disable channel link while using inline mod if enabled.
+
+DOWNLOAD_IMAGES - Whether download media before posting to channel or not (requires local telegram api). Does not affect inline query.
 
 
 ## Add bot to channel
