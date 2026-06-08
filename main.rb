@@ -14,6 +14,7 @@ require 'open-uri'
 require "net/http"
 require 'json'
 require 'tempfile'
+require 'cgi'
 # Entry point class
 class FishSocket
   def initialize

@@ -10,6 +10,15 @@ class FishSocket
         transformed_string.gsub!(">","&gt")
         transformed_string.strip
       end
+      def clean_html(html_text)
+        return "" if html_text.nil?
+        cleaned = html_text.dup
+        cleaned.gsub!(/<br\s*\/?>/i, "\n")
+        cleaned.gsub!(/<\/p>\s*<p[^>]*>/i, "\n\n")
+        cleaned.gsub!(/<[^>]+>/, "")
+        cleaned = CGI.unescapeHTML(cleaned)
+        cleaned.strip
+      end
       def response_to_images(message,response,host_url="twitter")
         #p "----------------"
         download_images = TelegramConstants::DOWNLOAD_IMAGES
@@ -185,151 +194,239 @@ class FishSocket
           
           out_document = out_document_slices
         when "Bluesky"
-          if !response.is_a? (Array)
-            response=[response]
-          end
-          p "1"
-          #p response
-          first_link=response[0][:url]
-          count=0
-          #"post_info":post_info,"username":username,"post_id":post_id,"url":url
-          for individual_response in response #adding caption
-
-            #p individual_response
-            author_hashtag<<"##{individual_response[:username]}"
-  
-            source_lnk<<"<a href=\"#{individual_response[:url]}\">Source bluesky#{(count!=0)? " "+(count+1).to_s : ""}</a>"#""+message.text        
-  
-            quote<<"<blockquote>#{StandartMessages.transform_string(individual_response[:post_info]["record"]["text"])}</blockquote>"
-            count+=1
-            p "2"
-          end
-          
-          p "FUUUUUUUUUUUU"
-          #p quote
-          #p author_hashtag
-          #p source_lnk
-          if quote.length>=2
-            quote=[""]
-          end
-          p response
-          for i in 0..response.length-1 do #getting all media links
-            #debug comments ----------------
-            #File.open("#{out[i][out[i].index('/media/')+7..]}", 'wb') { |fp| fp.write(response.body) }
-            #IO.copy_stream(URI.open("#{out[i]}:orig"), "./test_files/#{out[i][out[i].index('/media/')+7..]}")
-            #p response ------------------
-            media=response[i][:post_info]['embed']
-            #p "i=#{i}"
-            if media.has_key?("images")
-              p media["images"]
-              for image in media['images']
-                if i==0 and image==media['images'][0]
-                  p "image=#{image} media=#{media['images'][0]}"
-                  capt= "#{quote.join("\n")}\n#{author_hashtag.uniq.join(" ")}\n#{source_lnk.join("\n")}"
-                else
-                  capt=""
-                end
-                out_compressed << Telegram::Bot::Types::InputMediaPhoto.new(
-                      media:image["fullsize"],
-                      caption:capt,
-                      parse_mode:"HTML"
-                      )
-                out_document << Telegram::Bot::Types::InputMediaDocument.new(
-                  media:image["fullsize"]
-                  )
-              end
-            elsif media.has_key?("playlist")
-              return
-              if image==media['playlist'][0]
-                capt= "#{quote.join("\n")}\n#{author_hashtag.uniq.join(" ")}\n#{source_lnk.join("\n")}"
-              else
-                capt=""
-              end
-              out_compressed << Telegram::Bot::Types::InputMediaVideo.new(
-                type:"video",
-                media:media["playlist"],
-                caption:capt,
-                parse_mode:"HTML"
-                )
-            end
-          end
-          #p out_compressed
-          out_compressed=out_compressed.each_slice(10).to_a
-          out_document=out_document.each_slice(10).to_a
-        when "Baraag"
-          p ""
           if response[0].is_a? String
             return
           end
-          p response
           if !response.is_a? (Array)
             response=[response]
           end
-          p "2"
-          #p response
-          first_link=response[0]["tweet"]["url"]
+          first_link=response[0][:post_info]["status"]["url"]
           count=0
-          for individual_response in response #adding caption
-            author_hashtag<<"##{individual_response["tweet"]["author"]["screen_name"]}"
+          
+          for individual_response in response
+            # Telegram не поддерживает точки в хештегах, поэтому заменяем их на подчеркивания
+            handle = individual_response[:post_info]["status"]["author"]["screen_name"].gsub('.', '_')
+            author_hashtag<<"##{handle}"
   
-            source_lnk<<"<a href=\"#{individual_response["tweet"]["url"]}\">Source baraag#{(count!=0)? " "+(count+1).to_s : ""}</a>"#""+message.text        
+            source_lnk<<"<a href=\"#{individual_response[:post_info]["status"]["url"]}\">Source bluesky#{(count!=0)? " "+(count+1).to_s : ""}</a>"       
   
-            quote<<"<blockquote>#{StandartMessages.transform_string(individual_response["content"])}</blockquote>"
+            cleaned_text = individual_response[:post_info]["status"]["text"] || ""
+            quote<<"<blockquote>#{StandartMessages.transform_string(cleaned_text)}</blockquote>"
             count+=1
-            p "2"
           end
           
-          #out=out.each_slice(10).to_a
-          
-          
-          p "FUUUUUUUUUUUU"
-          #p quote
-          #p author_hashtag
-          #p source_lnk
           if quote.length>=2
             quote=[""]
           end
-          for i in 0..response.length-1 do #getting all media links
-            #debug comments ----------------
-            #File.open("#{out[i][out[i].index('/media/')+7..]}", 'wb') { |fp| fp.write(response.body) }
-            #IO.copy_stream(URI.open("#{out[i]}:orig"), "./test_files/#{out[i][out[i].index('/media/')+7..]}")
-            #p response ------------------
-            for j in 0..response[i]['media_attachments'].length-1 do
-              media=response[i]['media_attachments'][j]
+          
+          for i in 0..response.length-1 do
+            # Забираем медиа из массива all (как у твиттера)
+            media_list = response[i][:post_info]["status"]["media"] && response[i][:post_info]["status"]["media"]["all"] ? response[i][:post_info]["status"]["media"]["all"] : []
+            
+            for j in 0..media_list.length-1 do
+              media = media_list[j]
               if i==0 and j==0
                 capt= "#{quote.join("\n")}\n#{author_hashtag.uniq.join(" ")}\n#{source_lnk.join("\n")}"
               else
                 capt=""
               end
+              
+              url_to_use = media["url"]
+              item_downloaded = false
+              file_io_comp = nil
+              file_io_doc = nil
+              exten = "image/jpeg"
+
+              thumb_downloaded = false
+              file_io_thumb = nil
+              url_thumb_to_use = (media["type"] == "video") ? media["thumbnail_url"] : nil
+
+              if download_images && media["type"] != "gif" && url_to_use
+                begin
+                  ext = url_to_use.split('.').last.split('?').first
+                  ext = 'jpg' if ext.to_s.empty? || ext.length > 4
+                  exten = (ext == 'mp4' || media["type"] == "video") ? 'video/mp4' : 'image/jpeg'
+                  exten = 'image/png' if ext == 'png'
+                  
+                  tf = Tempfile.new(['bluesky_media', ".#{ext}"])
+                  tf.binmode
+                  URI.open(url_to_use) { |io| tf.write(io.read) }
+                  tf.close
+                  temp_files << tf
+                  
+                  file_io_comp = Faraday::UploadIO.new(tf.path, exten)
+                  file_io_doc  = Faraday::UploadIO.new(tf.path, exten) if media["type"] == "photo" || media["type"] == "image"
+                  item_downloaded = true
+
+                  # Скачивание превью для видео
+                  if media["type"] == "video" && url_thumb_to_use
+                    ext_thumb = url_thumb_to_use.split('.').last.split('?').first
+                    ext_thumb = 'jpg' if ext_thumb.to_s.empty? || ext_thumb.length > 4
+                    
+                    tf_thumb = Tempfile.new(['bluesky_thumb', ".#{ext_thumb}"])
+                    tf_thumb.binmode
+                    URI.open(url_thumb_to_use) { |io| tf_thumb.write(io.read) }
+                    tf_thumb.close
+                    temp_files << tf_thumb
+                    
+                    file_io_thumb = Faraday::UploadIO.new(tf_thumb.path, 'image/jpeg')
+                    thumb_downloaded = true
+                  end
+                rescue => e
+                  Listener.bot.logger.error("Bluesky Download failed: #{e}")
+                  item_downloaded = false
+                end
+              end
+
+              # Иногда API отдает 0, что может сломать таймер Telegram. Если 0 — передаем nil
+              dur = media["duration"].to_i
+              dur = nil if dur <= 0 
+              
               case media["type"]
               when "video"
-                out_compressed << Telegram::Bot::Types::InputMediaVideo.new(
-                    type:"video",
-                    media:media["url"],
-                    caption:capt,
-                    parse_mode:"HTML"
-                    )
-              when "gifv"
-                Listener.bot.api.send_animation(
-                  chat_id:chat__id,
-                  animation: media["url"],
-                  caption:capt,
-                  parse_mode:"HTML"
-                )
-              when "image"
-                out_compressed << Telegram::Bot::Types::InputMediaPhoto.new(
-                      media:"#{media["url"]}",
-                      caption:capt,
-                      parse_mode:"HTML"
-                      )
-                out_document << Telegram::Bot::Types::InputMediaDocument.new(
-                  media:"#{media["url"]}"
-                  )
+                out_compressed_items << { 
+                  type: "video", 
+                  downloaded: item_downloaded, 
+                  url: url_to_use, 
+                  io: file_io_comp, 
+                  exten: exten, 
+                  caption: capt,
+                  width: 0,#media["width"] && media["width"] > 0 ? media["width"] : nil, 
+                  height: 0,#media["height"] && media["height"] > 0 ? media["height"] : nil, 
+                  duration: 0,#dur,
+                  thumb_downloaded: thumb_downloaded,
+                  thumb_url: url_thumb_to_use,
+                  thumb_io: file_io_thumb
+                }
+              when "gif"
+                if item_downloaded
+                  Listener.bot.api.send_animation(chat_id: chat__id, animation: Faraday::UploadIO.new(temp_files.last.path, exten), caption: capt, parse_mode: "HTML")
+                else
+                  Listener.bot.api.send_animation(chat_id: chat__id, animation: url_to_use, caption: capt, parse_mode: "HTML")
+                end
+              when "photo", "image"
+                out_compressed_items << { type: "photo", downloaded: item_downloaded, url: url_to_use, io: file_io_comp, exten: exten, caption: capt }
+                out_document_items << { type: "document", downloaded: item_downloaded, url: url_to_use, io: file_io_doc, exten: exten }
               end
             end
           end
-          out_compressed=out_compressed.each_slice(10).to_a
-          out_document=out_document.each_slice(10).to_a
+          
+          out_compressed_slices = out_compressed_items.each_slice(10).to_a
+          out_document_slices = out_document_items.each_slice(10).to_a
+          out_document = out_document_slices
+        when "Baraag"
+          p "Baraag"
+          if response[0].is_a? String
+            return
+          end
+          if !response.is_a? (Array)
+            response=[response]
+          end
+          first_link=response[0][:url]
+          count=0
+          for individual_response in response
+            author_hashtag<<"##{individual_response[:username]}"
+            source_lnk<<"<a href=\"#{individual_response[:url]}\">Source baraag#{(count!=0)? " "+(count+1).to_s : ""}</a>"
+            cleaned_content = clean_html(individual_response[:post_info]["content"])
+            quote<<"<blockquote>#{StandartMessages.transform_string(cleaned_content)}</blockquote>"
+            count+=1
+          end
+          
+          if quote.length>=2
+            quote=[""]
+          end
+          
+          for i in 0..response.length-1 do
+            for j in 0..response[i][:post_info]['media_attachments'].length-1 do
+              media=response[i][:post_info]['media_attachments'][j]
+              if i==0 and j==0
+                capt= "#{quote.join("\n")}\n#{author_hashtag.uniq.join(" ")}\n#{source_lnk.join("\n")}"
+              else
+                capt=""
+              end
+              
+              url_to_use = media["url"]
+              item_downloaded = false
+              file_io_comp = nil
+              file_io_doc = nil
+              exten = "image/jpeg"
+
+              # Baraag/Mastodon хранит превью видео в preview_url
+              thumb_downloaded = false
+              file_io_thumb = nil
+              url_thumb_to_use = (media["type"] == "video") ? media["preview_url"] : nil
+
+              if download_images && media["type"] != "gifv" && url_to_use
+                begin
+                  ext = url_to_use.split('.').last.split('?').first
+                  ext = 'jpg' if ext.to_s.empty? || ext.length > 4
+                  exten = (ext == 'mp4' || media["type"] == "video") ? 'video/mp4' : 'image/jpeg'
+                  exten = 'image/png' if ext == 'png'
+                  
+                  tf = Tempfile.new(['baraag_media', ".#{ext}"])
+                  tf.binmode
+                  URI.open(url_to_use) { |io| tf.write(io.read) }
+                  tf.close
+                  temp_files << tf
+                  
+                  file_io_comp = Faraday::UploadIO.new(tf.path, exten)
+                  file_io_doc  = Faraday::UploadIO.new(tf.path, exten) if media["type"] == "image"
+                  item_downloaded = true
+
+                  if media["type"] == "video" && url_thumb_to_use
+                    ext_thumb = url_thumb_to_use.split('.').last.split('?').first
+                    ext_thumb = 'jpg' if ext_thumb.to_s.empty? || ext_thumb.length > 4
+                    
+                    tf_thumb = Tempfile.new(['baraag_thumb', ".#{ext_thumb}"])
+                    tf_thumb.binmode
+                    URI.open(url_thumb_to_use) { |io| tf_thumb.write(io.read) }
+                    tf_thumb.close
+                    temp_files << tf_thumb
+                    
+                    file_io_thumb = Faraday::UploadIO.new(tf_thumb.path, 'image/jpeg')
+                    thumb_downloaded = true
+                  end
+                rescue => e
+                  Listener.bot.logger.error("Baraag Download failed: #{e}")
+                  item_downloaded = false
+                end
+              end
+
+              # Извлекаем метаданные размеров/длительности (Baraag/Mastodon хранит их в meta[:original])
+              meta = media["meta"] && media["meta"]["original"] ? media["meta"]["original"] : {}
+              
+              case media["type"]
+              when "video"
+                out_compressed_items << { 
+                  type: "video", 
+                  downloaded: item_downloaded, 
+                  url: url_to_use, 
+                  io: file_io_comp, 
+                  exten: exten, 
+                  caption: capt,
+                  width: meta["width"], 
+                  height: meta["height"], 
+                  duration: meta["duration"] ? meta["duration"].to_f.round : nil,
+                  thumb_downloaded: thumb_downloaded,
+                  thumb_url: url_thumb_to_use,
+                  thumb_io: file_io_thumb
+                }
+              when "gifv"
+                if item_downloaded
+                  Listener.bot.api.send_animation(chat_id: chat__id, animation: Faraday::UploadIO.new(temp_files.last.path, exten), caption: capt, parse_mode: "HTML")
+                else
+                  Listener.bot.api.send_animation(chat_id: chat__id, animation: url_to_use, caption: capt, parse_mode: "HTML")
+                end
+              when "image"
+                out_compressed_items << { type: "photo", downloaded: item_downloaded, url: url_to_use, io: file_io_comp, exten: exten, caption: capt }
+                out_document_items << { type: "document", downloaded: item_downloaded, url: url_to_use, io: file_io_doc, exten: exten }
+              end
+            end
+          end
+          
+          out_compressed_slices = out_compressed_items.each_slice(10).to_a
+          out_document_slices = out_document_items.each_slice(10).to_a
+          out_document = out_document_slices
         
         end
 
@@ -386,7 +483,7 @@ class FishSocket
                     supports_streaming: true,
                     width: item[:width],     
                     height: item[:height],   
-                    duration: item[:duration].round()
+                    duration: item[:duration] ? item[:duration].round : nil
                   }
                   
                   if item[:thumb_downloaded]
@@ -414,7 +511,7 @@ class FishSocket
                     supports_streaming: true,
                     width: item[:width],     
                     height: item[:height],   
-                    duration: item[:duration].round()
+                    duration: item[:duration] ? item[:duration].round : nil
                   }
                   if item[:thumb_url]
                     media_opts[:thumbnail] = item[:thumb_url]
@@ -634,7 +731,7 @@ class FishSocket
           StandartMessages.response_to_images(message,response,"twitter")
           return
         when /https:\/\/baraag.net\/(.*?)\/[0-9]+/
-          return
+          #return
           if not message.from
             chat__id = (defined?message.chat.id) ? message.chat.id : message.message.chat.id
             begin
@@ -650,14 +747,16 @@ class FishSocket
             for s in link
               #url = "https://baraag.net/@Phinci/114570991029426425"
               url=s
-              username = url.match(%r{https:\/\/baraag.net\/(.*?)\/[0-9]+})[1]
+              #username = url.match(%r{https:\/\/baraag.net\/(.*?)\/[0-9]+})[1]
 
               post_id=/\/[0-9]+/.match(url)[0][1..]
               post_info=Faraday.get("https://baraag.net/api/v1/statuses/#{post_id}").body
 
               post_info= JSON.parse(post_info)#["thread"]["post"]
               return if post_info["media_attachments"].empty?
-
+              
+              username = post_info["account"]["username"]
+              
               response.append({"post_info":post_info,"username":username,"post_id":post_id,"url":url})
             end
             p response
@@ -691,9 +790,9 @@ class FishSocket
               username = url.match(%r{profile/(.*?)/post})[1]
               post_id=url.match(%r{post/(.*)})[1]
               did= Faraday.get("https://#{username}/.well-known/atproto-did").body
-              post_info=Faraday.get("https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=at://#{did}/app.bsky.feed.post/#{post_id}&depth=0").body
-              post_info= JSON.parse(post_info)["thread"]["post"]
-              return if post_info["embed"].nil?
+              post_info=Faraday.get("https://api.fxbsky.app/2/status/#{username}/#{post_id}").body
+              post_info= JSON.parse(post_info)
+              return if post_info["status"]["media"].nil?
 
               response.append({"post_info":post_info,"username":username,"post_id":post_id,"url":url})
             end
@@ -783,7 +882,8 @@ class FishSocket
         :process,
         :transform_string,
         :response_to_images,
-        :get_fxtwitter_response
+        :get_fxtwitter_response,
+        :clean_html
       )
 
     end
