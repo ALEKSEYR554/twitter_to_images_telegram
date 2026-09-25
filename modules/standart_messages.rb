@@ -651,18 +651,29 @@ class FishSocket
           #tw_link+='/en'
           #p tw_link
           #response = Faraday.get("#{tw_link}",{}, { 'User-Agent' => 'twitter_images_telegrambot/1.0' }) OLD
-          begin
-            response=Faraday.new(tw_link, headers: { 'User-Agent' => 'twitter_images_telegrambot/1.0' }).get
-            response= JSON.parse(response.body) 
-          rescue Exception=>e
-            if e.to_s.include? "Blocking operation timed out"
-              sleep(1)
-              retry
+          
+          max_tries = 5
+          current_try=0
+          tw_link+="?" #fxtwitter mature content work around
+          while current_try < max_tries
+            current_try+=1
+            begin
+              response=Faraday.new(tw_link, headers: { 'User-Agent' => 'twitter_images_telegrambot/1.0' }).get
+              response= JSON.parse(response.body) 
+            rescue Exception=>e
+              if e.to_s.include? "Blocking operation timed out"
+                sleep(1)
+                retry
+              end
+              if e.to_s.include? "unexpected character: '<!DOCTYPE"
+                sleep(1)
+                retry
+              end
             end
-            if e.to_s.include? "unexpected character: '<!DOCTYPE"
-              sleep(1)
-              retry
+            if response["code"]!=404
+              break
             end
+            p "404 occured, current try = #{current_try}/#{max_tries}"
           end
           #p response
           #p response

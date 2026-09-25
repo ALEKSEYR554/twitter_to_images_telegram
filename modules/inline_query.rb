@@ -93,8 +93,8 @@ class FishSocket
                   #p "---"
                   #p response
                   #p "---"
-                  p "respin==#{response}"
-                  Listener.bot.logger.info("respin==#{response}")
+                  #p "respin==#{response}"
+                  #Listener.bot.logger.info("respin==#{response}")
                   if !response.is_a? String
                     if response['tweet'].has_key?("media")
                       if !response['tweet']["media"].has_key?("all")
